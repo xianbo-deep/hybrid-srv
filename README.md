@@ -1,88 +1,129 @@
-# hybrid-srv
+# Hybrid-Srv
 
-一个轻量的 Go 服务端骨架，目标是把 **HTTP** 和未来的 **gRPC** 接入统一到一套“上下文 + 中间件链”的模型里。
+**Hybrid-Srv** 是一个轻量级、可扩展的 Go 服务端框架骨架。
 
-当前仓库已实现：
+它的核心设计理念是将 **HTTP** 和 **gRPC** (规划中) 的处理流程统一抽象为一套 **"Context + Middleware Chain"** 模型。通过定义通用的 `core` 接口，解耦底层协议与业务逻辑，让开发者能够以一致的方式编写中间件和业务处理器。
 
-- `core`：框架抽象（`Ctx`、`HandlerFunc`、常量、响应写入包装）
-- `httpx`：基于 `net/http` 的 Engine / Router / Context
-- `middleware`：内置中间件（Recovery / RequestID / Logger）
-- `grpcx`：目录预留（当前为空）
+## 特性
 
-> 说明：目前路由是 **method + path 精确匹配**（map），尚不支持参数路由/通配符。
-
----
-
-## 快速开始（HTTP）
-
-### 1) 安装
-
-这是一个 Go module：`module hybrid-srv`。
-
-你可以在项目根目录执行：
-
-```powershell
-go test ./...
-```
-
-### 2) 最小示例
-
-仓库里提供了一个最小可运行示例：`test/main.go`。
-
-运行：
-
-```powershell
-go run .\test
-```
-
-然后访问：
-
-- `GET http://127.0.0.1:8080/ping`  -> `{"message":"pong"}`
-
----
-
-## 使用方式
-
-### 注册路由
-
-当前支持的快捷方法：
-
-- `e.Get(path, handler)`
-- `e.Post(path, handler)`
-- `e.Put(path, handler)`
-- `e.Delete(path, handler)`
-
-
-
-
-## 内置中间件
-
-`middleware.Defaults()` 顺序为：
-
-1. `middleware.Recovery()`：捕获 panic，记录成 `c.Err(err)`，并 `Abort()`
-2. `middleware.RequestID()`：生成 `request_id` 并放入 `Ctx`
-3. `middleware.Logger()`：打印请求开始/结束日志，包含 method/path/rid/cost/aborted/err
-
-
----
+- **统一核心抽象 (`core`)**：定义了通用的 `Ctx` 接口和 `HandlerFunc`，为多协议支持奠定基础。
+- **模块化设计**：
+  - `httpx`：基于标准库 `net/http` 的轻量级封装，提供路由、上下文管理。
+  - `middleware`：开箱即用的通用中间件（Recovery, Logger, RequestID）。
+  - `grpcx`：(WIP) 预留的 gRPC 扩展层。
+- **中间件机制**：支持洋葱模型（Onion Architecture）的中间件链，轻松实现拦截、鉴权、日志等功能。
+- **开发者友好**：
+  - 内置 `Recovery` 防止服务崩溃。
+  - 内置 `RequestID` 全链路追踪标识。
+  - 简洁的流式 API 设计。
 
 ## 目录结构
 
 ```text
-core/        框架抽象：Ctx 接口、HandlerFunc、常量、ResponseWriter 包装
-httpx/       HTTP 实现：Engine、Router、HTTP Context（实现 core.Ctx）
-middleware/  内置中间件：Recovery、RequestID、Logger
-grpcx/       gRPC 预留目录（当前为空）
-test/        最小可运行示例（go run .\\test）
-docs/        文档目录（如后续补充设计说明/示例）
+.
+├── core/           # [核心] 框架顶层抽象 (Ctx接口, Handler定义, 通用常量)
+├── httpx/          # [HTTP] HTTP 协议实现 (Engine, Router, Context实现)
+├── grpcx/          # [gRPC] gRPC 协议实现 (预留/开发中)
+├── middleware/     # [中间件] 通用中间件集合 (Logger, Recovery, etc.)
+├── test/           # [示例] 最小可运行示例
+├── go.mod          # 依赖管理
+└── README.md       # 项目文档
 ```
 
----
+## 快速开始
 
-## 限制与后续方向
+### 1. 环境要求
 
-- Router 目前是 map 精确匹配；源码里已标注 `// TODO 改trie树`，后续可升级为 Trie/radix tree。
-- `grpcx` 目录目前为空，可以作为未来的 gRPC Engine/Interceptor/Ctx 适配层。
+- Go 1.18+ (推荐使用最新版本)
 
----
+### 2. 运行示例
+
+本项目包含一个开箱即用的示例代码。
+
+```bash
+# 运行测试示例
+go run ./test/main.go
+```
+
+服务启动后，监听 `:8080` 端口。你可以通过 curl 或浏览器访问：
+
+```bash
+curl http://localhost:8080/ping
+# 输出: {"message":"pong"}
+```
+
+## 使用指南
+
+### 基础用法
+
+```go
+package main
+
+import (
+    "hybrid-srv/core"
+    "hybrid-srv/httpx"
+    "net/http"
+)
+
+func main() {
+    // 1. 创建默认引擎 (包含 Logger, Recovery, RequestID 中间件)
+    app := httpx.Default()
+
+    // 2. 注册路由
+    app.Get("/hello", func(c core.Ctx) {
+        // 使用类型断言获取 HTTP 专有方法 (如需要的化)
+        if h, ok := c.(*httpx.Ctx); ok {
+             h.JSON(200, map[string]string{
+                "message": "Hello World",
+            })
+        }
+    })
+
+    // 3. 启动服务
+    http.ListenAndServe(":8080", app)
+}
+```
+
+### 编写中间件
+
+中间件遵循 `func(core.Ctx)` 签名，通过 `c.Next()` 控制执行流。
+
+```go
+package main
+
+import "hybrid-srv/core"
+
+// 伪代码：验证函数
+func valid(x any) bool { return x != nil }
+
+func MyAuthMiddleware() core.HandlerFunc {
+    return func(c core.Ctx) {
+        // --- 请求前处理 ---
+        token, _ := c.Get("token") // 获取上下文信息
+        if !valid(token) {
+            c.Abort() // 终止后续处理
+            return
+        }
+
+        c.Next() // 执行下一个中间件或业务逻辑
+
+        // --- 请求后处理 ---
+        // 比如统计耗时等
+    }
+}
+
+// Just to satisfy the linter
+func _() {
+    _ = MyAuthMiddleware()
+    _ = valid(nil)
+}
+```
+
+## 目前限制与计划
+
+- **路由系统**：目前的路由实现 (`httpx/router.go`) 基于 `map` 进行精确匹配 (`Method + Path`)。不支持路径参数（如 `/user/:id`）或通配符。
+  - *计划*：引入 Trie 树 (前缀树) 路由实现。
+- **gRPC 支持**：`grpcx` 目录目前为空。
+  - *计划*：实现 gRPC 的拦截器适配，使其能复用 `core` 定义的中间件逻辑。
+
 
