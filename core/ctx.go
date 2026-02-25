@@ -9,6 +9,8 @@ type Ctx interface {
 	Context() context.Context
 	// 更改上下文
 	WithContext(context.Context)
+	// 推进
+	Next()
 	// 终止
 	Abort()
 	// 是否终止
