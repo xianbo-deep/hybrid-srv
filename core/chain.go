@@ -1,6 +1,6 @@
 package core
 
-type Handler func(*Ctx)
+type Handler func(Ctx)
 
 type Middleware func(Handler) Handler
 
