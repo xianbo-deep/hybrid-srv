@@ -50,6 +50,9 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 创建上下文
 	c := NewCtx(request.Context())
 
+	// 设置协议
+	c.Set(core.CtxKeyProtocal, core.ProtocalHTTP)
+
 	// 换成包装后的writer
 	rw := core.NewResponseWriter(writer)
 

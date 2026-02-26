@@ -4,6 +4,11 @@ const (
 	CtxKeyRequestID = "request_id"
 	CtxKeyMethod    = "method"
 	CtxKeyPath      = "path"
+	CtxKeyProtocal  = "protocal"
+)
+
+const (
+	ProtocalHTTP = "HTTP"
 )
 
 const (

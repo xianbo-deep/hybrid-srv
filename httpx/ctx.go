@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"hybrid-srv/core"
 	"net/http"
-	"strconv"
 	"sync"
 )
 
@@ -66,10 +65,13 @@ func (c *Ctx) Next() core.Result {
 			return core.Result{}
 		}
 		res := c.handlers[c.index](c)
-		if res.Code != 0 || res.Data != nil || res.Msg != "" {
-			c.Render(res)
-			return res
+		if c.index == len(c.handlers)-1 && !c.Writer.Written() {
+			if res.Code != 0 || res.Data != nil || res.Msg != "" {
+				c.Render(res)
+			}
 		}
+
+		return res
 	}
 	return core.Result{}
 }
@@ -164,19 +166,62 @@ func (c *Ctx) JSON(code int, v any) {
 	if h.Get("Content-Type") == "" {
 		h.Set("Content-Type", "application/json; charset=utf-8")
 	}
+	// 写入状态码
+	c.Status(code)
+
+	// 执行序列化
 	b, err := json.Marshal(v)
 	if err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.Set("Content-Length", strconv.Itoa(len(b)))
-	c.Writer.WriteHeader(code)
 	_, _ = c.Writer.Write(b)
 
 }
 
 // 渲染
 func (c *Ctx) Render(res core.Result) {
-	renderResultHTTP(c.Writer, res)
-	c.Abort()
+
+	// 写入元数据
+	for k, v := range res.Meta {
+		c.Writer.Header().Set(k, v)
+	}
+
+	// 映射状态码
+	status := httpStatusFromBizCode(res.Code)
+
+	// 写入响应体
+	if res.Code == core.CodeOK {
+		switch v := res.Data.(type) {
+		case string:
+			c.String(status, v)
+		default:
+			c.JSON(status, res)
+		}
+	}
+
+}
+
+// 状态码切换
+func httpStatusFromBizCode(code int) int {
+	switch code {
+	case core.CodeOK:
+		return http.StatusOK
+	case core.CodeBadRequest:
+		return http.StatusBadRequest
+	case core.CodeUnauthorized:
+		return http.StatusUnauthorized
+	case core.CodeForbidden:
+		return http.StatusForbidden
+	case core.CodeNotFound:
+		return http.StatusNotFound
+	case core.CodeInternal:
+		return http.StatusInternalServerError
+	default:
+		// 兜底：业务失败但没分类 -> 500
+		if code != 0 {
+			return http.StatusInternalServerError
+		}
+		return http.StatusOK
+	}
 }

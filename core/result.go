@@ -1,5 +1,8 @@
 package core
 
+/* 简短类型别名 */
+type H map[string]any
+
 /*
 跨协议返回值
 */

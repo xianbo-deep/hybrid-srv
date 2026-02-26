@@ -17,14 +17,15 @@ func Logger() core.HandlerFunc {
 		path := getString(c, core.CtxKeyPath)
 		rid = getString(c, core.CtxKeyRequestID)
 
+		cost := time.Since(start)
 		// 错误
 		err := c.Error()
 		if err != nil {
-			log.Printf("[req] done  method=%v path=%v rid=%v cost=%s aborted=%v err=%v",
-				method, path, rid, time.Since(start), c.Aborted(), err)
+			log.Printf("[Hybrid-Srv] req done  method=%v path=%v rid=%v cost=%v aborted=%v err=%v",
+				method, path, rid, cost, c.Aborted(), err)
 		}
-		log.Printf("[req] done  method=%s path=%s rid=%s cost=%s aborted=%v",
-			method, path, rid, time.Since(start), c.Aborted())
+		log.Printf("[Hybrid-Srv] req done  method=%s path=%s rid=%s cost=%v aborted=%v",
+			method, path, rid, cost, c.Aborted())
 		return res
 	}
 
