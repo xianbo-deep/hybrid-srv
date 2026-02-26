@@ -1,6 +1,8 @@
 # Hybrid-Srv
-
+<div align="center">
+<img alt="Go" src="https://img.shields.io/badge/Go-1.24.0-00ADD8?logo=go&logoColor=white" />
 **Hybrid-Srv** 是一个轻量级、可扩展的 Go 服务端框架骨架。
+</div>
 
 它的核心设计理念是将 **HTTP** 和 **gRPC** (规划中) 的处理流程统一抽象为一套 **"Context + Middleware Chain"** 模型。通过定义通用的 `core` 接口，解耦底层协议与业务逻辑，让开发者能够以一致的方式编写中间件和业务处理器。
 
