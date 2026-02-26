@@ -9,18 +9,17 @@ import (
 )
 
 func RequestID() core.HandlerFunc {
-	return func(c core.Ctx) {
+	return func(c core.Ctx) core.Result {
 		// 已存在则跳过
 		if v, ok := c.Get(core.CtxKeyRequestID); ok {
 			if s, ok := v.(string); ok && s != "" {
-				c.Next()
-				return
+				return c.Next()
 			}
 		}
 
 		requestID := generateRequestID()
 		c.Set(core.CtxKeyRequestID, requestID)
-		c.Next()
+		return c.Next()
 	}
 }
 

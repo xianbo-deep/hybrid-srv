@@ -1,6 +1,6 @@
 package core
 
-type HandlerFunc func(Ctx)
+type HandlerFunc func(Ctx) Result
 
 //type Handler func(Ctx)
 //

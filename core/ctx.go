@@ -9,15 +9,22 @@ type Ctx interface {
 	Context() context.Context
 	// 更改上下文
 	WithContext(context.Context)
-	// 推进
-	Next()
-	// 终止
-	Abort()
 	// 是否终止
 	Aborted() bool
 
+	// 推进
+	Next() Result
+	// 终止
+	Abort()
+
 	Set(key string, val any)
 	Get(key string) (any, bool)
+
+	// 根据协议渲染响应
+	Render(result Result)
+
+	// 拷贝上下文
+	Copy() Ctx
 
 	// 记录错误
 	Err(err error)

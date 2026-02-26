@@ -6,7 +6,7 @@ import (
 )
 
 func Recovery() core.HandlerFunc {
-	return func(c core.Ctx) {
+	return func(c core.Ctx) core.Result {
 		// 捕获panic
 		defer func() {
 			if r := recover(); r != nil {
@@ -14,10 +14,10 @@ func Recovery() core.HandlerFunc {
 				c.Err(err)
 
 				c.Abort()
-				return
+				c.Render(core.Fail(core.CodeInternal, "出现Panic"))
 			}
 		}()
 
-		c.Next()
+		return c.Next()
 	}
 }

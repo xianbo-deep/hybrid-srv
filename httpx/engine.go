@@ -62,7 +62,7 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 根据请求路径匹配业务方法
 	h := e.router.Match(request.Method, request.URL.Path)
 	if h == nil {
-		http.NotFound(writer, request)
+		c.Render(core.Fail(core.CodeNotFound, "未找到路由"))
 		return
 	}
 

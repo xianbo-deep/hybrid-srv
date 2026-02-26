@@ -8,12 +8,11 @@ import (
 )
 
 func Logger() core.HandlerFunc {
-	return func(c core.Ctx) {
+	return func(c core.Ctx) core.Result {
 		start := time.Now()
-
 		rid := getString(c, core.CtxKeyRequestID)
 		log.Printf("[req] start rid=%v", rid)
-		c.Next()
+		res := c.Next()
 		method := getString(c, core.CtxKeyMethod)
 		path := getString(c, core.CtxKeyPath)
 		rid = getString(c, core.CtxKeyRequestID)
@@ -26,6 +25,7 @@ func Logger() core.HandlerFunc {
 		}
 		log.Printf("[req] done  method=%s path=%s rid=%s cost=%s aborted=%v",
 			method, path, rid, time.Since(start), c.Aborted())
+		return res
 	}
 
 }

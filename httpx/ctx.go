@@ -13,7 +13,7 @@ type Ctx struct {
 	ctx context.Context
 
 	// http相关
-	Writer  http.ResponseWriter
+	Writer  *core.ResponseWriterWrapper
 	Request *http.Request
 
 	values  map[string]any
@@ -59,14 +59,19 @@ func (c *Ctx) Get(key string) (any, bool) {
 	return v, ok
 }
 
-func (c *Ctx) Next() {
+func (c *Ctx) Next() core.Result {
 	c.index++
 	for ; c.index < len(c.handlers); c.index++ {
 		if c.aborted {
-			return
+			return core.Result{}
 		}
-		c.handlers[c.index](c)
+		res := c.handlers[c.index](c)
+		if res.Code != 0 || res.Data != nil || res.Msg != "" {
+			c.Render(res)
+			return res
+		}
 	}
+	return core.Result{}
 }
 
 func (c *Ctx) resetHandlers(hs []core.HandlerFunc) {
@@ -77,6 +82,27 @@ func (c *Ctx) resetHandlers(hs []core.HandlerFunc) {
 func (c *Ctx) Abort() {
 	c.aborted = true
 	c.index = len(c.handlers)
+}
+
+func (c *Ctx) Copy() core.Ctx {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cp := &Ctx{
+		ctx:      c.ctx,
+		Writer:   c.Writer,
+		Request:  c.Request,
+		values:   make(map[string]any),
+		aborted:  c.aborted,
+		handlers: c.handlers,
+		index:    c.index,
+	}
+
+	for k, v := range c.values {
+		cp.values[k] = v
+	}
+
+	return cp
+
 }
 
 func (c *Ctx) Aborted() bool {
@@ -114,13 +140,11 @@ func NewCtx(ctx context.Context) *Ctx {
 
 // 设置状态码
 func (c *Ctx) Status(code int) {
-	// 类型断言
-	if rw, ok := c.Writer.(core.HeadWriter); ok {
-		if !rw.Written() {
-			rw.WriteHeader(code)
-			return
-		}
+	if c.Writer == nil {
 		return
+	}
+	if !c.Writer.Written() {
+		c.Writer.WriteHeader(code)
 	}
 }
 
@@ -149,4 +173,10 @@ func (c *Ctx) JSON(code int, v any) {
 	c.Writer.WriteHeader(code)
 	_, _ = c.Writer.Write(b)
 
+}
+
+// 渲染
+func (c *Ctx) Render(res core.Result) {
+	renderResultHTTP(c.Writer, res)
+	c.Abort()
 }
