@@ -1,8 +1,8 @@
 package httpx
 
 import (
-	"hybrid-srv/core"
-	"hybrid-srv/middleware"
+	"Fuse/core"
+	"Fuse/middleware"
 	"net/http"
 )
 

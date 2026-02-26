@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"Fuse/core"
 	"fmt"
-	"hybrid-srv/core"
 )
 
 func Recovery() core.HandlerFunc {

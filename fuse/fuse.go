@@ -1,8 +1,8 @@
 package fuse
 
 import (
-	"hybrid-srv/core"
-	"hybrid-srv/httpx"
+	"Fuse/core"
+	"Fuse/httpx"
 	"net/http"
 	"sync"
 )
@@ -15,7 +15,7 @@ type Fuse struct {
 	mws []core.HandlerFunc
 }
 
-func (fs *Fuse) New() *Fuse {
+func New() *Fuse {
 	return &Fuse{
 		httpEngine: httpx.New(),
 	}
@@ -43,7 +43,7 @@ func (fs *Fuse) HTTP() *httpx.Engine {
 // 启动服务
 func (fs *Fuse) Run(httpAddr string) error {
 	var wg sync.WaitGroup
-	if httpAddr == "" {
+	if httpAddr != "" {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

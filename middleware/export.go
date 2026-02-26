@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"hybrid-srv/core"
+	"Fuse/core"
 )
 
 func Defaults() []core.HandlerFunc {
