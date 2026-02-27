@@ -191,21 +191,35 @@ func (c *Ctx) Render(res core.Result) {
 	status := httpStatusFromBizCode(res.Code)
 
 	// 写入响应体
-	if res.Code == core.CodeOK {
+	if res.Code == core.CodeSuccess {
 		switch v := res.Data.(type) {
 		case string:
 			c.String(status, v)
 		default:
-			c.JSON(status, res)
+			c.JSON(status, v)
 		}
 	}
 
 }
 
+func (c *Ctx) Success(data any) core.Result {
+	return core.Result{
+		Code: core.CodeSuccess,
+		Data: data,
+	}
+}
+
+func (c *Ctx) Fail(code int, msg string) core.Result {
+	return core.Result{
+		Code: code,
+		Msg:  msg,
+	}
+}
+
 // 状态码切换
 func httpStatusFromBizCode(code int) int {
 	switch code {
-	case core.CodeOK:
+	case core.CodeSuccess:
 		return http.StatusOK
 	case core.CodeBadRequest:
 		return http.StatusBadRequest

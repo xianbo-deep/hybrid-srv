@@ -11,21 +11,27 @@ func Logger() core.HandlerFunc {
 	return func(c core.Ctx) core.Result {
 		start := time.Now()
 		rid := getString(c, core.CtxKeyRequestID)
-		log.Printf("[req] start rid=%v", rid)
-		res := c.Next()
 		method := getString(c, core.CtxKeyMethod)
 		path := getString(c, core.CtxKeyPath)
-		rid = getString(c, core.CtxKeyRequestID)
+		protocol := getString(c, core.CtxKeyProtocol)
+
+		log.Printf("[FUSE] ---> [%s] %s %s", protocol, method, path)
+
+		res := c.Next()
 
 		cost := time.Since(start)
 		// 错误
 		err := c.Error()
 		if err != nil {
-			log.Printf("[Hybrid-Srv] req done  method=%v path=%v rid=%v cost=%v aborted=%v err=%v",
-				method, path, rid, cost, c.Aborted(), err)
+			log.Printf("[FUSE] <--- [ERROR] [%s] %s %s | rid=%s | cost=%v | aborted=%v | err=%v",
+				protocol, method, path, rid, cost, c.Aborted(), err)
+		} else if res.Code != core.CodeSuccess {
+			log.Printf("[FUSE] <--- [FAIL] [%s] %s %s | rid=%s | cost=%v | code=%d | msg=%s",
+				protocol, method, path, rid, cost, res.Code, res.Msg)
+		} else {
+			log.Printf("[FUSE] <--- [OK] [%s] %s %s | rid=%s | cost=%v",
+				protocol, method, path, rid, cost)
 		}
-		log.Printf("[Hybrid-Srv] req done  method=%s path=%s rid=%s cost=%v aborted=%v",
-			method, path, rid, cost, c.Aborted())
 		return res
 	}
 

@@ -51,7 +51,7 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	c := NewCtx(request.Context())
 
 	// 设置协议
-	c.Set(core.CtxKeyProtocal, core.ProtocalHTTP)
+	c.Set(core.CtxKeyProtocol, core.ProtocalHTTP)
 
 	// 换成包装后的writer
 	rw := core.NewResponseWriter(writer)

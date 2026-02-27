@@ -4,7 +4,7 @@ const (
 	CtxKeyRequestID = "request_id"
 	CtxKeyMethod    = "method"
 	CtxKeyPath      = "path"
-	CtxKeyProtocal  = "protocal"
+	CtxKeyProtocol  = "protocol"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	CodeOK           = 0
+	CodeSuccess      = 0
 	CodeBadRequest   = 1001
 	CodeUnauthorized = 2001
 	CodeForbidden    = 3001

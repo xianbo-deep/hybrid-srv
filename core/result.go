@@ -16,24 +16,24 @@ type Result struct {
 	Meta map[string]string `json:"meta,omitempty"`
 }
 
-func OK(data any) Result {
+func Success(data any) Result {
 	return Result{
 		Code: 0,
 		Data: data,
-	}
-}
-
-func OKmsg(msg string, data any) Result {
-	return Result{
-		Code: 0,
-		Data: data,
-		Msg:  msg,
 	}
 }
 
 func Fail(code int, msg string) Result {
 	return Result{
 		Code: code,
+		Msg:  msg,
+	}
+}
+
+func (r Result) WithMsg(msg string, data any) Result {
+	return Result{
+		Code: 0,
+		Data: data,
 		Msg:  msg,
 	}
 }

@@ -26,6 +26,10 @@ type Ctx interface {
 	// 拷贝上下文
 	Copy() Ctx
 
+	// 响应
+	Success(data any) Result
+	Fail(code int, msg string) Result
+
 	// 记录错误
 	Err(err error)
 	// 最后一个错误

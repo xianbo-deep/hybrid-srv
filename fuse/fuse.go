@@ -7,6 +7,11 @@ import (
 	"sync"
 )
 
+type Context = core.Ctx
+type HandlerFunc = core.HandlerFunc
+type Result = core.Result
+type H = core.H
+
 type Fuse struct {
 	// 引擎
 	httpEngine *httpx.Engine
