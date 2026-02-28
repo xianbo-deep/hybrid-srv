@@ -4,7 +4,6 @@
     <strong>一个轻量级、可扩展的 Go 服务端框架骨架</strong>
   </p>
   <img alt="Go" src="https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white" />
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
 </div>
 
 <br />
