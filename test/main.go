@@ -4,6 +4,7 @@ import (
 	"Fuse/fuse"
 	"Fuse/middleware"
 	"log"
+	"net/http"
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 	httpSrv.Get("/ping/:id", func(c fuse.Context) fuse.Result {
 		id := c.Param("id")
 		log.Printf("id: %s", id)
-		return c.Success(fuse.H{"message": "pong"})
+		return c.Success(fuse.H{"message": "pong"}).WithHttpStatus(http.StatusInternalServerError)
 	})
 
 	if err := app.Run(":8080"); err != nil {

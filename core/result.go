@@ -49,7 +49,7 @@ func (r Result) WithMeta(k, v string) Result {
 	return r
 }
 
-func (r Result) WithHttpCode(status int) Result {
+func (r Result) WithHttpStatus(status int) Result {
 	r.httpStatus = status
 	return r
 }
