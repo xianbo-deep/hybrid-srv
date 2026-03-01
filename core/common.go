@@ -8,7 +8,8 @@ const (
 )
 
 const (
-	ProtocalHTTP = "HTTP"
+	ProtocolHTTP = "HTTP"
+	ProtocolGRPC = "gRPC"
 )
 
 const (
@@ -16,6 +17,8 @@ const (
 	MethodPost   = "POST"
 	MethodPut    = "PUT"
 	MethodDelete = "DELETE"
+
+	MethodRPC = "RPC"
 )
 
 const (

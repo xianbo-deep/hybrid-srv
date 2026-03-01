@@ -17,6 +17,9 @@ type Result struct {
 
 	// http状态码
 	httpStatus int
+
+	// grpc状态码
+	grpcStatus int
 }
 
 func Success(data any) Result {
@@ -55,4 +58,12 @@ func (r Result) WithHttpStatus(status int) Result {
 }
 func (r Result) GetHttpStatus() int {
 	return r.httpStatus
+}
+
+func (r Result) WithGrpcStatus(grpcStatus int) Result {
+	r.grpcStatus = grpcStatus
+	return r
+}
+func (r Result) GetGrpcStatus() int {
+	return r.grpcStatus
 }

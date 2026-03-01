@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"Fuse/core"
+	"Fuse/grpcx"
 	"Fuse/httpx"
 	"net/http"
 	"sync"
@@ -15,6 +16,7 @@ type H = core.H
 type Fuse struct {
 	// 引擎
 	httpEngine *httpx.Engine
+	grpcEngine *grpcx.Engine
 
 	// 全局中间件
 	mws []core.HandlerFunc
@@ -23,12 +25,14 @@ type Fuse struct {
 func New() *Fuse {
 	return &Fuse{
 		httpEngine: httpx.New(),
+		grpcEngine: grpcx.New(),
 	}
 }
 
 func (fs *Fuse) Default() *Fuse {
 	return &Fuse{
 		httpEngine: httpx.Default(),
+		grpcEngine: grpcx.Default(),
 	}
 }
 
@@ -38,11 +42,16 @@ func (fs *Fuse) Use(mws ...core.HandlerFunc) {
 
 	// 下发给底层引擎
 	fs.httpEngine.Use(mws...)
+	fs.grpcEngine.Use(mws...)
 }
 
 // 返回引擎
 func (fs *Fuse) HTTP() *httpx.Engine {
 	return fs.httpEngine
+}
+
+func (fs *Fuse) GRPC() *grpcx.Engine {
+	return fs.grpcEngine
 }
 
 // 启动服务

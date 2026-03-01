@@ -35,6 +35,9 @@ type Ctx interface {
 	// 获取查询参数
 	Query(key string) string
 
+	// 读取数据到结构体中
+	Bind(v any) error
+
 	// 记录错误
 	Err(err error)
 	// 最后一个错误
