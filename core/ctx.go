@@ -29,6 +29,7 @@ type Ctx interface {
 	// 响应
 	Success(data any) Result
 	Fail(code int, msg string) Result
+	FailWithError(err error) Result
 
 	// 获取路径参数
 	Param(key string) string

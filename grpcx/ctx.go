@@ -3,6 +3,7 @@ package grpcx
 import (
 	"Fuse/core"
 	"context"
+	"errors"
 	"sync"
 
 	"google.golang.org/grpc/codes"
@@ -80,8 +81,23 @@ func (c *Ctx) Abort() {
 }
 
 func (c *Ctx) Copy() core.Ctx {
-
-	// TODO
+	cp := &Ctx{
+		ctx:      c.ctx,
+		request:  c.request,
+		values:   make(map[string]any),
+		aborted:  c.aborted,
+		handlers: c.handlers,
+		index:    c.index,
+		errs:     c.errs,
+	}
+	for k, v := range c.values {
+		cp.values[k] = v
+	}
+	if c.errs != nil {
+		cp.errs = make([]error, 0, len(c.errs))
+		copy(cp.errs, c.errs)
+	}
+	return cp
 }
 
 func (c *Ctx) Aborted() bool {
@@ -116,8 +132,8 @@ func (c *Ctx) Query(key string) string {
 	return ""
 }
 
-func (c *Ctx) Bind(data any) {
-
+func (c *Ctx) Bind(data any) error {
+	return errors.New("GRPC does not support Bind")
 }
 
 func (c *Ctx) Success(data any) core.Result {
@@ -129,7 +145,21 @@ func (c *Ctx) Fail(code int, msg string) core.Result {
 }
 
 func (c *Ctx) Render(result core.Result) {
+	return
+}
 
+func (c *Ctx) FailWithError(err error) core.Result {
+	if err == nil {
+		return c.Success(nil)
+	}
+	if bizErr, ok := err.(*core.BizError); ok {
+		res := c.Fail(bizErr.Code, bizErr.Msg)
+		if bizErr.GrpcStatus != 0 {
+			res = res.WithGrpcStatus(bizErr.GrpcStatus)
+		}
+		return res
+	}
+	return c.Fail(core.CodeInternal, err.Error()).WithGrpcStatus(int(codes.Internal))
 }
 
 func grpcCodeFromBizCode(code int) codes.Code {

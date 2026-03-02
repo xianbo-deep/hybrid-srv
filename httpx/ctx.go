@@ -301,6 +301,22 @@ func (c *Ctx) Fail(code int, msg string) core.Result {
 	}
 }
 
+func (c *Ctx) FailWithError(err error) core.Result {
+	if err == nil {
+		return c.Success(nil)
+	}
+
+	// 类型断言
+	if bizErr, ok := err.(*core.BizError); ok {
+		res := c.Fail(bizErr.Code, bizErr.Msg)
+		if bizErr.HttpStatus != 0 {
+			res = res.WithHttpStatus(bizErr.HttpStatus)
+		}
+		return res
+	}
+	return c.Fail(core.CodeInternal, err.Error()).WithHttpStatus(http.StatusInternalServerError)
+}
+
 // 状态码切换
 func httpStatusFromBizCode(code int) int {
 	switch code {
