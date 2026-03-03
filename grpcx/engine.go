@@ -17,12 +17,18 @@ type Engine struct {
 	mws    []core.HandlerFunc
 }
 
-func New() *Engine {
+func New(opts ...grpc.ServerOption) *Engine {
 	e := &Engine{
 		mws: make([]core.HandlerFunc, 0),
 	}
+
+	opts = append(opts,
+		grpc.UnaryInterceptor(e.unaryInterceptor()),
+		grpc.StreamInterceptor(e.streamInterceptor()),
+	)
+
 	if e.server == nil {
-		e.server = grpc.NewServer(grpc.UnaryInterceptor(e.unaryInterceptor()))
+		e.server = grpc.NewServer(opts...)
 	}
 	return e
 }
@@ -42,7 +48,7 @@ func (e *Engine) Server() *grpc.Server {
 	return e.server
 }
 
-// 将中间件包装成grpc的拦截器
+// 一元拦截器
 func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		// 获取新的上下文
@@ -50,7 +56,7 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 
 		// 补充基础元信息
 		c.Set(core.CtxKeyProtocol, core.ProtocolGRPC)
-		c.Set(core.CtxKeyMethod, core.MethodRPC)
+		c.Set(core.CtxKeyMethod, core.MethodUnary)
 		c.Set(core.CtxKeyPath, info.FullMethod)
 
 		// 组装调用链
@@ -74,6 +80,8 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 
 		// 业务状态码写到元数据中
 		trailer := metadata.Pairs("x-biz-code", strconv.Itoa(res.Code))
+
+		// 挂载元数据
 		_ = grpc.SetTrailer(ctx, trailer)
 
 		if res.Code != core.CodeSuccess {
@@ -90,5 +98,54 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 			返回的数据需要实现proto.Message接口
 		*/
 		return res.Data, nil
+	}
+}
+
+// 流式拦截器
+func (e *Engine) streamInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		c := NewCtx(ss.Context(), nil)
+		c.Set(core.CtxKeyProtocol, core.ProtocolGRPC)
+		c.Set(core.CtxKeyMethod, core.MethodStream)
+		c.Set(core.CtxKeyPath, info.FullMethod)
+
+		hs := make([]core.HandlerFunc, 0)
+		hs = append(hs, e.mws...)
+
+		streamHandler := func(c core.Ctx) core.Result {
+			// 执行原生流式业务逻辑
+			err := handler(srv, ss)
+			if err != nil {
+				return c.FailWithError(err)
+			}
+			return c.Success(nil)
+		}
+
+		hs = append(hs, streamHandler)
+
+		// 执行中间件
+		c.handlers = hs
+		c.index = -1
+		res := c.Next()
+
+		// 业务状态码写到元数据中
+		trailer := metadata.Pairs("x-biz-code", strconv.Itoa(res.Code))
+
+		// 挂载元数据
+		// 这里用ss挂载trailer
+		ss.SetTrailer(trailer)
+
+		if res.Code != core.CodeSuccess {
+			grpcCode := res.GetGrpcStatus()
+			var finalCode codes.Code
+			if grpcCode == 0 {
+				finalCode = grpcCodeFromBizCode(res.Code)
+			} else {
+				finalCode = codes.Code(grpcCode)
+			}
+			// 将业务错误映射为 gRPC 标准错误
+			return status.Error(finalCode, res.Msg)
+		}
+		return nil
 	}
 }
