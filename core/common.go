@@ -9,7 +9,8 @@ const (
 
 const (
 	ProtocolHTTP = "HTTP"
-	ProtocolGRPC = "gRPC"
+	ProtocolGRPC = "GRPC"
+	ProtocolCRON = "CRON"
 )
 
 const (
@@ -18,7 +19,8 @@ const (
 	MethodPut    = "PUT"
 	MethodDelete = "DELETE"
 
-	MethodRPC = "RPC"
+	MethodUnary  = "unary"
+	MethodStream = "stream"
 )
 
 const (

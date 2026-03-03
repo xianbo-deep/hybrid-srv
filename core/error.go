@@ -16,7 +16,7 @@ func (e *BizError) Error() string {
 }
 
 // 暴露接口给用户
-func NewError(code int, msg string) error {
+func NewError(code int, msg string) *BizError {
 	return &BizError{Code: code, Msg: msg}
 }
 
