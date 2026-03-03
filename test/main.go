@@ -19,7 +19,7 @@ func main() {
 		return c.Success(fuse.H{"message": "pong"}).WithHttpStatus(http.StatusInternalServerError)
 	})
 
-	if err := app.Run(":8080"); err != nil {
+	if err := app.Run(":8080", ":9090"); err != nil {
 		panic(err)
 	}
 }
