@@ -4,6 +4,7 @@ import (
 	"Fuse/core"
 	"Fuse/middleware"
 	"net/http"
+	"strings"
 )
 
 type Engine struct {
@@ -51,7 +52,11 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	c := NewCtx(request.Context())
 
 	// 设置协议
-	c.Set(core.CtxKeyProtocol, core.ProtocolHTTP)
+	if strings.ToLower(request.Header.Get("Upgrade")) == "websocket" {
+		c.Set(core.CtxKeyProtocol, core.ProtocolWS)
+	} else {
+		c.Set(core.CtxKeyProtocol, core.ProtocolHTTP)
+	}
 
 	// 换成包装后的writer
 	rw := core.NewResponseWriter(writer)
