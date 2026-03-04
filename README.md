@@ -11,6 +11,7 @@
 **Fuse** 是一个旨在统一服务端开发体验的 Go 框架。
 
 它通过 **Core Abstraction (核心抽象)** 设计模式，将 HTTP、gRPC 和 Cron 等不同协议的处理流程统一抽象为 **"Context + Middleware Chain"** 模型。
+
 详细文档请移步 [docs](./docs) 目录。
 
 ## 核心特性
