@@ -23,6 +23,11 @@ const (
 	CodeInternal     = 9001
 )
 
+type AddrConfig struct {
+	HttpAddr string
+	GrpcAddr string
+}
+
 type Context = core.Ctx
 type HandlerFunc = core.HandlerFunc
 type Result = core.Result
@@ -80,28 +85,29 @@ func (fs *Fuse) CRON() *cronx.Engine {
 }
 
 // 启动服务
-func (fs *Fuse) Run(httpAddr string, grpcAddr string) error {
-	var httpServer *http.Server
-	if httpAddr != "" {
-		httpServer = &http.Server{
-			Addr:    httpAddr,
-			Handler: fs.httpEngine,
+func (fs *Fuse) Run(cfg AddrConfig) error {
+	if cfg.HttpAddr == "" {
+		cfg.HttpAddr = ":8080"
+	}
+	httpServer := &http.Server{
+		Addr:    cfg.HttpAddr,
+		Handler: fs.httpEngine,
+	}
+	go func() {
+		_ = httpServer.ListenAndServe()
+	}()
+
+	if cfg.GrpcAddr == "" {
+		cfg.GrpcAddr = ":8081"
+	}
+	go func() {
+		lis, err := net.Listen("tcp", cfg.GrpcAddr)
+		if err != nil {
+			panic(err) // 监听端口失败直接报错
 		}
-		go func() {
-			_ = httpServer.ListenAndServe()
-		}()
-	}
+		_ = fs.grpcEngine.Server().Serve(lis)
+	}()
 
-	if grpcAddr != "" {
-
-		go func() {
-			lis, err := net.Listen("tcp", grpcAddr)
-			if err != nil {
-				panic(err) // 监听端口失败直接报错
-			}
-			_ = fs.grpcEngine.Server().Serve(lis)
-		}()
-	}
 	// 启动定时任务
 	fs.cronEngine.Start()
 
@@ -115,7 +121,7 @@ func (fs *Fuse) Run(httpAddr string, grpcAddr string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		log.Fatal("[FUSE]: Server forced to shutdown:", err)
 	}
 
 	// 优雅关闭 gRPC
@@ -124,9 +130,9 @@ func (fs *Fuse) Run(httpAddr string, grpcAddr string) error {
 	cronCtx := fs.cronEngine.Stop()
 	select {
 	case <-ctx.Done():
-		log.Fatal("CRON engine stop timeout")
+		log.Fatal("[FUSE]: CRON engine stop timeout")
 	case <-cronCtx.Done():
-		log.Fatal("CRON engine stopped")
+		log.Fatal("[FUSE]: CRON engine stopped")
 	}
 	return nil
 }
