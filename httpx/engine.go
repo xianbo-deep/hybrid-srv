@@ -98,12 +98,11 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		c.Set("param-"+k, v)
 	}
 	// 组装中间件
-	hs := make([]core.HandlerFunc, 0, len(e.mws)+1)
-	hs = append(hs, e.mws...)
-	hs = append(hs, h)
+	c.handlers = append(c.handlers, e.mws...)
+	c.handlers = append(c.handlers, h)
 
 	// 执行中间件
-	c.resetHandlers(hs)
+	c.resetHandlers()
 	res := c.Next()
 
 	// 渲染

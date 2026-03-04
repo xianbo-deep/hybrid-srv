@@ -72,8 +72,7 @@ func (c *Ctx) Next() core.Result {
 	return core.Result{}
 }
 
-func (c *Ctx) resetHandlers(hs []core.HandlerFunc) {
-	c.handlers = hs
+func (c *Ctx) resetHandlers() {
 	c.index = -1
 }
 
@@ -139,7 +138,7 @@ func NewCtx(ctx context.Context) *Ctx {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &Ctx{ctx: ctx, values: make(map[string]any)}
+	return &Ctx{ctx: ctx, values: make(map[string]any), handlers: make([]core.HandlerFunc, 0, 64)}
 }
 
 // 设置状态码
@@ -320,7 +319,6 @@ func (c *Ctx) FailWithError(err error) core.Result {
 // 重置上下文状态 清空遗留信息
 func (c *Ctx) reset() {
 	c.ctx = nil
-	c.handlers = nil
 	c.index = -1
 	c.aborted = false
 	c.Request = nil
@@ -329,7 +327,9 @@ func (c *Ctx) reset() {
 	// 清空数据但保留底层容量
 	clear(c.values)
 	clear(c.errs)
+	clear(c.handlers)
 
+	c.handlers = c.handlers[:0]
 	c.errs = c.errs[:0]
 }
 

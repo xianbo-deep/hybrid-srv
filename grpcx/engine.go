@@ -81,8 +81,7 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 		c.Set(core.CtxKeyPath, info.FullMethod)
 
 		// 组装调用链
-		hs := make([]core.HandlerFunc, 0)
-		hs = append(hs, e.mws...)
+		c.handlers = append(c.handlers, e.mws...)
 
 		// 业务函数
 		grpcCodeHandler := func(c core.Ctx) core.Result {
@@ -93,9 +92,8 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 			return c.Success(realResp)
 		}
 
-		hs = append(hs, grpcCodeHandler)
 		// 将调用链挂载到上下文执行
-		c.handlers = hs
+		c.handlers = append(c.handlers, grpcCodeHandler)
 		c.index = -1
 		res := c.Next()
 
@@ -143,8 +141,7 @@ func (e *Engine) streamInterceptor() grpc.StreamServerInterceptor {
 		c.Set(core.CtxKeyMethod, core.MethodStream)
 		c.Set(core.CtxKeyPath, info.FullMethod)
 
-		hs := make([]core.HandlerFunc, 0)
-		hs = append(hs, e.mws...)
+		c.handlers = append(c.handlers, e.mws...)
 
 		streamHandler := func(c core.Ctx) core.Result {
 			// 执行原生流式业务逻辑
@@ -155,10 +152,9 @@ func (e *Engine) streamInterceptor() grpc.StreamServerInterceptor {
 			return c.Success(nil)
 		}
 
-		hs = append(hs, streamHandler)
+		c.handlers = append(c.handlers, streamHandler)
 
 		// 执行中间件
-		c.handlers = hs
 		c.index = -1
 		res := c.Next()
 

@@ -29,8 +29,9 @@ type Ctx struct {
 
 func NewCtx(ctx context.Context) *Ctx {
 	return &Ctx{
-		ctx:    ctx,
-		values: make(map[string]any),
+		ctx:      ctx,
+		values:   make(map[string]any),
+		handlers: make([]core.HandlerFunc, 0, 64),
 	}
 }
 
@@ -166,12 +167,13 @@ func (c *Ctx) reset() {
 	c.ctx = nil
 	c.aborted = false
 	c.index = -1
-	c.handlers = nil
 	c.request = nil
 
 	clear(c.values)
+	clear(c.handlers)
 	clear(c.errs)
 
+	c.handlers = c.handlers[:0]
 	c.errs = c.errs[:0]
 }
 
