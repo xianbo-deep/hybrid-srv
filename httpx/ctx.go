@@ -317,6 +317,22 @@ func (c *Ctx) FailWithError(err error) core.Result {
 	return c.Fail(core.CodeInternal, err.Error()).WithHttpStatus(http.StatusInternalServerError)
 }
 
+// 重置上下文状态 清空遗留信息
+func (c *Ctx) reset() {
+	c.ctx = nil
+	c.handlers = nil
+	c.index = -1
+	c.aborted = false
+	c.Request = nil
+	c.Writer = nil
+
+	// 清空数据但保留底层容量
+	clear(c.values)
+	clear(c.errs)
+
+	c.errs = c.errs[:0]
+}
+
 // 状态码切换
 func httpStatusFromBizCode(code int) int {
 	switch code {

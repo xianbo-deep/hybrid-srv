@@ -3,20 +3,28 @@ package httpx
 import (
 	"Fuse/core"
 	"Fuse/middleware"
+	"context"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type Engine struct {
 	router *Router
 	mws    []core.HandlerFunc
+	pool   sync.Pool
 }
 
 func New() *Engine {
-	return &Engine{
+	e := &Engine{
 		router: NewRouter(),
 		mws:    make([]core.HandlerFunc, 0),
 	}
+	e.pool.New = func() any {
+		c := NewCtx(context.Background())
+		return c
+	}
+	return e
 }
 
 func Default() *Engine {
@@ -49,7 +57,18 @@ func (e *Engine) Delete(path string, handler core.HandlerFunc) {
 
 func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 创建上下文
-	c := NewCtx(request.Context())
+	c := e.pool.Get().(*Ctx)
+
+	// 传入原生上下文
+	c.WithContext(request.Context())
+
+	defer func() {
+		// 清空上下文状态
+		c.reset()
+
+		// 回收上下文
+		e.pool.Put(c)
+	}()
 
 	// 设置协议
 	if strings.ToLower(request.Header.Get("Upgrade")) == "websocket" {
@@ -93,4 +112,5 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			c.Render(res)
 		}
 	}
+
 }

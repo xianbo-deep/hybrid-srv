@@ -5,6 +5,7 @@ import (
 	"Fuse/middleware"
 	"context"
 	"strconv"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,6 +16,7 @@ import (
 type Engine struct {
 	server *grpc.Server
 	mws    []core.HandlerFunc
+	pool   sync.Pool
 }
 
 func New(opts ...grpc.ServerOption) *Engine {
@@ -29,6 +31,11 @@ func New(opts ...grpc.ServerOption) *Engine {
 
 	if e.server == nil {
 		e.server = grpc.NewServer(opts...)
+	}
+
+	e.pool.New = func() any {
+		c := NewCtx(context.Background())
+		return c
 	}
 	return e
 }
@@ -52,7 +59,21 @@ func (e *Engine) Server() *grpc.Server {
 func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		// 获取新的上下文
-		c := NewCtx(ctx, req)
+		c := e.pool.Get().(*Ctx)
+
+		// 传入原生上下文
+		c.WithContext(ctx)
+
+		defer func() {
+			// 清空上下文状态
+			c.reset()
+
+			// 回收上下文
+			e.pool.Put(c)
+		}()
+
+		// 传入请求对象
+		c.request = req
 
 		// 补充基础元信息
 		c.Set(core.CtxKeyProtocol, core.ProtocolGRPC)
@@ -94,6 +115,7 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 			}
 			return nil, status.Error(finalCode, res.Msg)
 		}
+
 		/*
 			返回的数据需要实现proto.Message接口
 		*/
@@ -104,7 +126,19 @@ func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 // 流式拦截器
 func (e *Engine) streamInterceptor() grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		c := NewCtx(ss.Context(), nil)
+		c := e.pool.Get().(*Ctx)
+
+		// 将默认上下文更改为ServerStream提供的长连接上下文
+		c.WithContext(ss.Context())
+
+		defer func() {
+			// 清空上下文状态
+			c.reset()
+
+			// 回收上下文
+			e.pool.Put(c)
+		}()
+
 		c.Set(core.CtxKeyProtocol, core.ProtocolGRPC)
 		c.Set(core.CtxKeyMethod, core.MethodStream)
 		c.Set(core.CtxKeyPath, info.FullMethod)
@@ -146,6 +180,7 @@ func (e *Engine) streamInterceptor() grpc.StreamServerInterceptor {
 			// 将业务错误映射为 gRPC 标准错误
 			return status.Error(finalCode, res.Msg)
 		}
+
 		return nil
 	}
 }

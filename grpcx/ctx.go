@@ -27,11 +27,10 @@ type Ctx struct {
 	mu   sync.RWMutex
 }
 
-func NewCtx(ctx context.Context, request any) *Ctx {
+func NewCtx(ctx context.Context) *Ctx {
 	return &Ctx{
-		ctx:     ctx,
-		request: request,
-		values:  make(map[string]any),
+		ctx:    ctx,
+		values: make(map[string]any),
 	}
 }
 
@@ -124,14 +123,6 @@ func (c *Ctx) Errors() []error {
 	return out
 }
 
-func (c *Ctx) Param(key string) string {
-	return ""
-}
-
-func (c *Ctx) Query(key string) string {
-	return ""
-}
-
 func (c *Ctx) Bind(data any) error {
 	return errors.New("GRPC does not support Bind")
 }
@@ -160,6 +151,20 @@ func (c *Ctx) FailWithError(err error) core.Result {
 		return res
 	}
 	return c.Fail(core.CodeInternal, err.Error()).WithGrpcStatus(int(codes.Internal))
+}
+
+// 重置上下文状态 清空遗留信息
+func (c *Ctx) reset() {
+	c.ctx = nil
+	c.aborted = false
+	c.index = -1
+	c.handlers = nil
+	c.request = nil
+
+	clear(c.values)
+	clear(c.errs)
+
+	c.errs = c.errs[:0]
 }
 
 func grpcCodeFromBizCode(code int) codes.Code {
