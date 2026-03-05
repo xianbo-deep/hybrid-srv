@@ -85,7 +85,12 @@ func (fs *Fuse) CRON() *cronx.Engine {
 }
 
 // 启动服务
-func (fs *Fuse) Run(cfg AddrConfig) error {
+func (fs *Fuse) Run(config ...AddrConfig) error {
+	var cfg AddrConfig
+	if len(config) > 0 {
+		cfg = config[0]
+	}
+	
 	if cfg.HttpAddr == "" {
 		cfg.HttpAddr = ":8080"
 	}
