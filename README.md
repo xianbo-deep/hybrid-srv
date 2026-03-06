@@ -1,39 +1,35 @@
 <div align="center">
   <h1>Fuse</h1>
-  <p>
-    <strong>一个轻量级、协议无关的 Go 服务端框架骨架</strong>
-  </p>
+  <p><strong>一个轻量级、协议无关的 Go 服务端框架骨架</strong></p>
   <img alt="Go" src="https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white" />
 </div>
 
 <br />
 
-**Fuse** 是一个旨在统一服务端开发体验的 Go 框架。
+**Fuse** 旨在提供统一的服务端开发体验。通过高度抽象的 **Context + Middleware** 模型，它将 HTTP、gRPC、Cron、WebSocket、SSE 等多种协议的处理流程归一化，让开发者能以一致的范式构建服务。
 
-它通过 **Core Abstraction (核心抽象)** 设计模式，将 HTTP、gRPC 和 Cron 等不同协议的处理流程统一抽象为 **"Context + Middleware Chain"** 模型。
+## 核心设计
 
-详细文档请移步 [docs](./docs) 目录。
+**Core + Facade 模式**
 
-## 核心特性
+Fuse 采用独立且极简的 `core` 包来定义核心接口，所有协议适配层（`httpx`, `grpcx` 等）均依赖 `core`。而 `fuse` 包作为统一门面，对核心类型进行了**类型别名 (Type Aliasing)**。
 
-- **协议统一**：无论是 HTTP 请求、gRPC 调用还是定时任务 (Cron)，都使用同一套中间件和 Handler 逻辑。
-- **Core 抽象层**：通过独立的 `core` 包定义接口，打破包依赖环，让模块间交互更顺畅。
-- **模块化设计**：
-  - `fuse`：统一门面 (Facade)，提供极简 API。
-  - `httpx` / `grpcx` / `cronx`：各协议的具体实现适配器。
-  - `middleware`：开箱即用的通用拦截器 (Logger, Recovery, etc.)。
+开发者**仅需引入 `fuse` 包**，即可获得完整的能力支持。你使用的 `fuse.Context` 本质上就是 `core.Ctx`，但无需直接感知内部结构，既保证了架构的解耦，又维持了 API 的整洁。
 
 ## 目录结构
 
 ```text
 .
-├── core/           # [核心] 顶层抽象 (Ctx, Result, Handler)，解决循环依赖的关键
-├── fuse/           # [门面] 用户使用的统一入口，类型别名导出
-├── httpx/          # [HTTP] 基于 net/http 的适配层
-├── grpcx/          # [gRPC] gRPC 适配层
-├── cronx/          # [Cron] 定时任务适配层
-├── middleware/     # [插件] 通用中间件
-└── docs/           # [文档] 详细开发指南
+├── core/           # 核心抽象层 (Ctx, Result)，解耦依赖
+├── fuse/           # 用户统一入口 (Facade)，提供极简 API
+├── httpx/          # HTTP 协议适配器
+├── grpcx/          # gRPC 协议适配器
+├── cronx/          # 定时任务适配器
+├── ssex/           # Server-Sent Events 适配器
+├── wsx/            # WebSocket 适配器
+├── middleware/     # 通用中间件集合
+├── mux/            # 连接多路复用
+└── docs/           # 详细开发文档
 ```
 
 ## 快速开始
@@ -44,63 +40,45 @@
 go get github.com/xianbo-deep/fuse
 ```
 
-### Hello World
+### 示例代码
 
 ```go
 package main
 
-import (
-    "Fuse/fuse"
-)
+import "Fuse/fuse"
 
 func main() {
     // 1. 初始化引擎
     app := fuse.New()
 
-    // 2. 注册 HTTP 路由
+    // 2. 注册路由 (使用 fuse.Context，无需引入 core)
     app.HTTP().Get("/ping", func(c fuse.Context) fuse.Result {
         return c.Success(fuse.H{"message": "pong"})
     })
-    
-    // 3. 注册定时任务 (可选)
-    // app.Cron().AddFunc("@every 10s", func(c fuse.Context) fuse.Result {
-    //     println("tick")
-    //     return c.Success(nil)
-    // })
 
-    // 4. 启动服务
+    // 3. 启动
     if err := app.Run(":8080"); err != nil {
         panic(err)
     }
 }
 ```
 
-更多使用方式请参考 [Quick Start](./docs/quickstart.md).
-
-## 文档
-
-- [API 参考](./docs/api.md)
-- [协议适配指南](./docs/protocols.md)
-- [快速开始](./docs/quickstart.md)
-- [设计模式](./docs/designpatterns.md)
-
 ## 未来规划
 
 - [x] 完善 gRPC 协议支持
 - [x] 优化中间件链内存分配
-- [ ] 实现单端口协议分发
 - [x] 实现优雅停机
-- [x] 新增 WebSocket 协议适配 (wsx)
-- [x] WebSocket实现客户端服务端心跳检测
-- [x] 实现http路由优先级控制
-- [x] 使用radix tree实现路由管理
-- [ ] 增加更多通用中间件 (限流、鉴权、链路追踪)
-- [x] 新增 SSE 协议
-- [x] SSE 实现 Keep-Alive
-- [ ] Websocket实现消息泵
-- [ ] 完善单元测试与覆盖率
-- [ ] 完善GoDoc
-- [x] 完成HTTP路由分组
-- [ ] 完成HTTP参数校验
+- [x] WebSocket 协议适配 (wsx) 及心跳检测
+- [x] HTTP 路由优先级控制及 Radix Tree 实现
+- [x] HTTP 路由分组
+- [x] SSE 协议适配 (ssex) 及 Keep-Alive
+- [ ] 实现单端口协议分发 (CMUX)
+- [ ] 增加更多通用中间件 (Limit, Auth, Trace)
+- [ ] WebSocket 消息泵 (Message Pump)
+- [ ] HTTP 参数校验 (Validator)
+- [ ] 完善单元测试与 Benchmarks 对比
+- [ ] 完善 GoDoc
 - [ ] 补充相关文档
-- [ ] 写压测代码，做Benchmark测试，和常见框架做对比
+
+更多详细设计和用法请阅读 [docs](./docs) 目录下的文档。
+
