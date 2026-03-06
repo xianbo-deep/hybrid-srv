@@ -5,6 +5,7 @@ import (
 	"Fuse/cronx"
 	"Fuse/grpcx"
 	"Fuse/httpx"
+	"Fuse/mux"
 	"context"
 	"log"
 	"net"
@@ -22,11 +23,6 @@ const (
 	CodeNotFound     = 4004
 	CodeInternal     = 9001
 )
-
-type AddrConfig struct {
-	HttpAddr string
-	GrpcAddr string
-}
 
 type Context = core.Ctx
 type HandlerFunc = core.HandlerFunc
@@ -85,32 +81,38 @@ func (fs *Fuse) CRON() *cronx.Engine {
 }
 
 // 启动服务
-func (fs *Fuse) Run(config ...AddrConfig) error {
-	var cfg AddrConfig
-	if len(config) > 0 {
-		cfg = config[0]
+func (fs *Fuse) Run(addr string) error {
+	if addr == "" {
+		addr = ":8080"
 	}
-	
-	if cfg.HttpAddr == "" {
-		cfg.HttpAddr = ":8080"
+	// 监听端口
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
 	}
+
+	// 获取分发器
+	muxer := mux.NewMultiplexer(ln.Addr())
+
+	// 启动服务
 	httpServer := &http.Server{
-		Addr:    cfg.HttpAddr,
 		Handler: fs.httpEngine,
 	}
+
 	go func() {
-		_ = httpServer.ListenAndServe()
+		if err := httpServer.Serve(muxer.HTTP1Listener()); err != nil {
+			log.Fatal(err)
+		}
 	}()
 
-	if cfg.GrpcAddr == "" {
-		cfg.GrpcAddr = ":8081"
-	}
 	go func() {
-		lis, err := net.Listen("tcp", cfg.GrpcAddr)
-		if err != nil {
-			panic(err) // 监听端口失败直接报错
+		if err := fs.grpcEngine.Server().Serve(muxer.HTTP2Listener()); err != nil {
+			log.Fatal(err)
 		}
-		_ = fs.grpcEngine.Server().Serve(lis)
+	}()
+	// 启动分发器进行协议分发
+	go func() {
+		muxer.ServeLoop(ln)
 	}()
 
 	// 启动定时任务
@@ -121,6 +123,11 @@ func (fs *Fuse) Run(config ...AddrConfig) error {
 	signal.Notify(quit, os.Interrupt)
 	// 阻塞等待
 	<-quit
+
+	// 关闭监听服务
+	if ln != nil {
+		ln.Close()
+	}
 
 	// 关闭服务
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

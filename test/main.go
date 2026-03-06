@@ -59,11 +59,10 @@ func main() {
 			}
 		}
 		time.Sleep(1 * time.Second)
-
 		return nil
 	}))
 
-	if err := app.Run(); err != nil {
+	if err := app.Run(":8080"); err != nil {
 		panic(err)
 	}
 }
