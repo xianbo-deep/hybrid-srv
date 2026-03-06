@@ -15,7 +15,7 @@ type WsHandlerFunc func(c core.Ctx, conn *websocket.Conn) error
 type WebsocketConfig struct {
 	PingInterval   time.Duration // 发送心跳的间隔
 	WaitTimeout    time.Duration // 等待的超时时间
-	allowedOrigins []string
+	AllowedOrigins []string
 }
 
 // 转换器 把用户写的WsHandlerFunc转换成HandlerFunc
@@ -26,17 +26,17 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 	}
 	// 填充默认值
 	if cfg.PingInterval == 0 {
-		cfg.PingInterval = 10 * time.Second
+		cfg.PingInterval = 54 * time.Second
 	}
 	if cfg.WaitTimeout == 0 {
-		cfg.WaitTimeout = 5 * time.Second
+		cfg.WaitTimeout = 60 * time.Second
 	}
 
 	// 获取升级器
 	upgrader := websocket.Upgrader{
 		// 跨域校验
 		CheckOrigin: func(r *http.Request) bool {
-			if len(cfg.allowedOrigins) == 0 {
+			if len(cfg.AllowedOrigins) == 0 {
 				return true
 			}
 			// 获取请求头
@@ -46,7 +46,7 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 			}
 
 			// 校验ip
-			for _, allowed := range cfg.allowedOrigins {
+			for _, allowed := range cfg.AllowedOrigins {
 				if origin == allowed || strings.Contains(origin, allowed) {
 					return true
 				}
@@ -80,7 +80,7 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 		// 检测逻辑
 		conn.SetPongHandler(func(pong string) error {
 			// 重新设置超时时间
-			return conn.SetWriteDeadline(time.Now().Add(cfg.WaitTimeout))
+			return conn.SetReadDeadline(time.Now().Add(cfg.WaitTimeout))
 		})
 
 		// 开启一个协程跑心跳检测

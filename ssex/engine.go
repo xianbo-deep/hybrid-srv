@@ -9,7 +9,7 @@ import (
 
 type SSEHandlerFunc func(c core.Ctx, stream *Stream) error
 
-func Upgrader(sseHandler SSEHandlerFunc) core.HandlerFunc {
+func Upgrade(sseHandler SSEHandlerFunc) core.HandlerFunc {
 	return func(c core.Ctx) core.Result {
 		// 类型断言
 		ctx, ok := c.(*httpx.Ctx)
@@ -25,7 +25,7 @@ func Upgrader(sseHandler SSEHandlerFunc) core.HandlerFunc {
 		// 初始化stream实例
 		stream := NewStream(ctx)
 
-		// 启动守护进程 监听用户是否断连
+		// 启动守护进程 监听客户端是否断连
 		go stream.startHeartPingPong()
 
 		// 执行业务逻辑
