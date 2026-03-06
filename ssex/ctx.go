@@ -15,12 +15,14 @@ type Stream struct {
 	ctx    *httpx.Ctx
 	reqCtx context.Context
 	mu     sync.Mutex
+	done   chan struct{}
 }
 
 func NewStream(ctx *httpx.Ctx) *Stream {
 	return &Stream{
 		ctx:    ctx,
 		reqCtx: ctx.Request.Context(),
+		done:   make(chan struct{}),
 	}
 }
 
@@ -31,6 +33,8 @@ func (s *Stream) Send(event string, data any) error {
 	// 进行心跳检测 客户端断连直接返回错误
 	select {
 	case <-s.reqCtx.Done():
+		return errClosed
+	case <-s.done:
 		return errClosed
 	default:
 	}
@@ -92,7 +96,13 @@ func (s *Stream) startHeartPingPong() {
 			return
 		case <-ticker.C:
 			s.mu.Lock()
-			s.ctx.Writer.Write([]byte(":ping\n\n"))
+			_, err := s.ctx.Writer.Write([]byte(":ping\n\n")) // 在SSE中这是注释
+			// 客户端断连
+			if err != nil {
+				s.mu.Unlock()
+				close(s.done)
+				return
+			}
 			s.ctx.Writer.Flush()
 			s.mu.Unlock()
 		}
