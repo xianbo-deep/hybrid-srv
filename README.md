@@ -97,6 +97,7 @@ func main() {
 - [ ] 增加更多通用中间件 (限流、鉴权、链路追踪)
 - [x] 新增 SSE 协议
 - [x] SSE 实现 Keep-Alive
+- [ ] Websocket实现消息泵
 - [ ] 完善单元测试与覆盖率
 - [ ] 完善GoDoc
 - [x] 完成HTTP路由分组
