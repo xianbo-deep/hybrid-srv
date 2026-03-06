@@ -48,7 +48,7 @@ func (w *ResponseWriterWrapper) Write(b []byte) (int, error) {
 	return n, err
 }
 
-// 流式/SSE
+// SSE流式
 func (w *ResponseWriterWrapper) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()

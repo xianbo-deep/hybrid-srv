@@ -4,6 +4,7 @@ import (
 	"Fuse/core"
 	"Fuse/middleware"
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -55,6 +56,8 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 设置协议
 	if strings.ToLower(request.Header.Get("Upgrade")) == "websocket" {
 		c.Set(core.CtxKeyProtocol, core.ProtocolWS)
+	} else if strings.Contains(request.Header.Get("Accept"), "text/event-stream") {
+		c.Set(core.CtxKeyProtocol, core.ProtocolSSE)
 	} else {
 		c.Set(core.CtxKeyProtocol, core.ProtocolHTTP)
 	}
@@ -71,8 +74,8 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 根据请求路径匹配业务方法
 	hs, params := e.router.Match(request.Method, request.URL.Path)
 	if hs == nil {
+		c.Err(errors.New("can not find handler with current route"))
 		c.Render(core.Fail(core.CodeNotFound, "未找到路由"))
-		return
 	}
 
 	// 记录路径参数映射表

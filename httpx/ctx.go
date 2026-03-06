@@ -333,6 +333,13 @@ func (c *Ctx) reset() {
 	c.errs = c.errs[:0]
 }
 
+// 设置SSE响应头
+func (c *Ctx) SetSSEHeader() {
+	c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+}
+
 // 状态码切换
 func httpStatusFromBizCode(code int) int {
 	switch code {
