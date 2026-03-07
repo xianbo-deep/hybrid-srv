@@ -17,49 +17,54 @@ TCP本质是**字节流**，没有消息边界
 - 包装后的对象可以给后续应用层协议复用，因为它们只接受`net.Conn`对象
 - 需要实现`net.Conn`接口
 
-### 协议指纹
+通过预读的前几个字节，可以判断连接的协议类型：
 
 **HTTP/1.1**
+- 纯文本协议。
+- 报文以方法名开头：`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTIONS`, `CONNECT`, `TRACE`。
+- 读取前 8 个字节即可进行匹配。
 
-- 纯文本协议
-- 前几个字节结构:`Method Path Version`
-- 读取前几个字节就可以得出是HTTP/1.1
-
-
-**HTTP2**
-
-- 二进制协议，定义了**固定连接前奏**:`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`
-- 读取到`PRI *`就可以确定是HTTP2
-- grpc基于HTTP2
+**HTTP/2 (h2c)**
+- 二进制协议。
+- 定义了 **固定连接前奏**：`PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`。
+- 读取到 `PRI *` 即可确定是 HTTP/2 (用于 gRPC)。
 
 **Websocket**
+- 基于 HTTP 协议握手。
+- 分发器将其识别为 HTTP/1.1。
+- 在 HTTP处理器 (`httpx` 或 `wsx`) 内部解析 Header，若包含 `Upgrade: websocket` 则升级连接。
 
-- 基于HTTP，先识别HTTP，再解析Header，如果发现有`Upgrade: websocket`，就说明是Websocket
-- 传输层不进行预读，在HTTP层判断
+**SSE (Server-Sent Events)**
+- 基于 HTTP 长连接。
+- 分发器将其识别为 HTTP/1.1。
+- 响应头特征：
+  ```
+  Content-Type: text/event-stream
+  Cache-Control: no-cache
+  Connection: keep-alive
+  ```
 
-**SSE**
+### 连接分发逻辑
 
-- 传输层不进行预读，在HTTP层判断
-- Header通常是
-```
-Content-Type: text/event-stream
-Cache-Control: no-cache
-Connection: keep-alive
-```
+底层使用 TCP 进行监听 (`mux.Multiplexer`)。
+1.  `Accept()` 获取原始 TCP 连接。
+2.  将其封装为 `FuseConn`。
+3.  设置 **握手超时**（默认 3 秒），防止恶意连接耗尽资源。
+4.  预读字节，进行协议匹配 (`IsHTTP1`, `IsHTTP2`)。
+5.  匹配成功后，将 `FuseConn` 推送到对应的虚拟监听器 (`FakeListener`)。
 
-### 连接分发
+### 虚拟监听器 (Fake Listener)
 
-底层使用TCP进行监听，使用`Accept()`方法获取请求并解析成`conn`对象后，开协程对每个`conn`对象进行处理
+虚拟监听器是适配 Go 标准库 `net.Listener` 接口的关键组件。
+- 它不直接监听端口，而是通过通道 (`chan net.Conn`) 接收来自 `Multiplexer` 分发的连接。
+- `http.Server` 或 `grpc.Server` 使用这个虚拟监听器启动服务。
+- 当应用层调用 `Serve()` 时，会从虚拟监听器的通道中取出连接进行处理。
 
-除此之外需要设置**握手超时**，防止恶意请求（连接但不发送数据）耗尽资源
+### gRPC 集成
 
-- 需要对预读字节进行判断，查看是否是因为发送了空字节的TCP连接引起的
+Fuse 通过 `grpcx` 包集成了 gRPC，并实现了与 HTTP 处理器风格一致的中间件机制。
 
-
-### Fake Listener
-
-虚拟监听器，接收`multiplexer`发送的请求，分发到不同引擎进行处理
-
-- 需要实现`net.Listener`接口
-- 挂载到自定义的http、grpc引擎进行请求监听，，`Serve()`会调用虚拟监听器实现的`Accept()`方法进行请求的处理
-- 分发器将请求发送到有缓冲通道，防止应用层对请求无法及时处理造成分发器阻塞
+**核心机制**
+- **Interceptors (拦截器)**: 使用 `UnaryInterceptor` 和 `StreamInterceptor` 拦截所有 gRPC 请求。
+- **Context 适配**: 将 `context.Context` 封装为 `core.Ctx` (具体为 `grpcx.Ctx`)，使得 gRPC 方法可以使用与 HTTP 相同的中间件和上下文操作 API。
+- **协议共存**: 可以在同一个端口上运行，通过 `mux` 进行流量分发。
