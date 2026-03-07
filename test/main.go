@@ -1,7 +1,6 @@
 package main
 
 import (
-	"Fuse/core"
 	"Fuse/fuse"
 	"Fuse/middleware"
 	"Fuse/ssex"
@@ -29,7 +28,7 @@ func main() {
 		return c.Success(fuse.H{"message": "pong"}).WithHttpStatus(http.StatusOK)
 	})
 
-	httpSrv.GET("/sse", ssex.Upgrade(func(c core.Ctx, stream *ssex.Stream) error {
+	httpSrv.GET("/sse", ssex.Upgrade(func(c fuse.Context, stream *ssex.Stream) error {
 		words := []string{"王", "昊", "声", "是", "我", "儿"}
 		for _, word := range words {
 			err := stream.Send("message", word)
@@ -41,24 +40,16 @@ func main() {
 		return stream.Send("done", nil)
 	}))
 
-	httpSrv.GET("/ws", wsx.Upgrade(func(c core.Ctx, conn *websocket.Conn) error {
-		go func() {
-			for {
-				_, _, err := conn.ReadMessage()
-				if err != nil {
-					return
-				}
-			}
-		}()
+	httpSrv.GET("/ws", wsx.Upgrade(func(ctx *fuse.WsContext) error {
 		words := []string{"大家好", "我是你爹"}
 
 		for _, word := range words {
-			err := conn.WriteMessage(websocket.TextMessage, []byte(word))
+			err := ctx.Conn.WriteMessage(websocket.TextMessage, []byte(word))
 			if err != nil {
 				return err
 			}
+			time.Sleep(1 * time.Second)
 		}
-		time.Sleep(1 * time.Second)
 		return nil
 	}))
 

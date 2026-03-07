@@ -5,17 +5,23 @@ import (
 	"Fuse/httpx"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-type WsHandlerFunc func(c core.Ctx, conn *websocket.Conn) error
+type WsHandlerFunc func(ctx *WsContext) error
 
 type WebsocketConfig struct {
 	PingInterval   time.Duration // 发送心跳的间隔
 	WaitTimeout    time.Duration // 等待的超时时间
 	AllowedOrigins []string
+}
+
+var defaultWebsocketConfig = WebsocketConfig{
+	PingInterval: time.Second * 54,
+	WaitTimeout:  time.Second * 60,
 }
 
 // 转换器 把用户写的WsHandlerFunc转换成HandlerFunc
@@ -26,10 +32,10 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 	}
 	// 填充默认值
 	if cfg.PingInterval == 0 {
-		cfg.PingInterval = 54 * time.Second
+		cfg.PingInterval = defaultWebsocketConfig.PingInterval
 	}
 	if cfg.WaitTimeout == 0 {
-		cfg.WaitTimeout = 60 * time.Second
+		cfg.WaitTimeout = defaultWebsocketConfig.WaitTimeout
 	}
 
 	// 获取升级器
@@ -71,6 +77,9 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 		}
 		defer conn.Close()
 
+		// 锁
+		var mu *sync.Mutex
+
 		// 设置读取超时
 		e := conn.SetReadDeadline(time.Now().Add(cfg.WaitTimeout))
 		if e != nil {
@@ -85,6 +94,13 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 
 		// 开启一个协程跑心跳检测
 		done := make(chan struct{}, 1)
+		defer func() {
+			select {
+			case <-done:
+			default:
+				close(done)
+			}
+		}()
 		go func() {
 			// 创建定时器
 			ticker := time.NewTicker(cfg.PingInterval)
@@ -97,20 +113,32 @@ func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.Handle
 					return
 				// 执行心跳检测
 				case <-ticker.C:
-					// 设置超时时间 防止协程卡死造成内存泄漏
-					if err = conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(cfg.WaitTimeout)); err != nil {
+					// 设置超时时间 防止协程卡死造成内存泄漏 需要加锁
+					mu.Lock()
+					err = conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(cfg.WaitTimeout))
+					mu.Unlock()
+					if err != nil {
 						return
 					}
 				}
 			}
 		}()
 
-		// 执行业务函数
-		err = wshandlerFunc(c, conn)
-		close(done)
-		if err != nil {
-			return c.Fail(core.CodeInternal, err.Error())
+		for {
+			conn.SetReadDeadline(time.Now().Add(cfg.WaitTimeout))
+
+			msgType, data, err := conn.ReadMessage()
+			if err != nil {
+				break
+			}
+			wsctx := NewWsContext(c, conn, msgType, data, mu)
+
+			// 执行业务函数
+			if err = wshandlerFunc(wsctx); err != nil {
+				break
+			}
 		}
+
 		return c.Success(nil)
 	}
 }

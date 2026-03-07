@@ -6,6 +6,7 @@ import (
 	"Fuse/grpcx"
 	"Fuse/httpx"
 	"Fuse/mux"
+	"Fuse/wsx"
 	"context"
 	"log"
 	"net"
@@ -29,6 +30,7 @@ type HandlerFunc = core.HandlerFunc
 type Result = core.Result
 type H = core.H
 type BizError = core.BizError
+type WsContext = wsx.WsContext
 
 var NewError = core.NewError
 
