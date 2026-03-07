@@ -72,9 +72,10 @@ func main() {
 - [x] HTTP 路由优先级控制及 Radix Tree 实现
 - [x] HTTP 路由分组
 - [x] SSE 协议适配 (ssex) 及 Keep-Alive
-- [ ] 实现单端口协议分发 (CMUX)
+- [x] 实现单端口协议分发 (CMUX)
 - [ ] 增加更多通用中间件 (Limit, Auth, Trace)
 - [ ] WebSocket 消息泵 (Message Pump)
+- [ ] WebSocket JSON 解析
 - [ ] HTTP 参数校验 (Validator)
 - [ ] 完善单元测试与 Benchmarks 对比
 - [ ] 完善 GoDoc
