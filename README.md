@@ -74,7 +74,7 @@ func main() {
 - [x] SSE 协议适配 (ssex) 及 Keep-Alive
 - [x] 实现单端口协议分发 (CMUX)
 - [ ] 增加更多通用中间件 (Limit, Auth, Trace)
-- [ ] WebSocket 消息泵 (Message Pump)
+- [x] WebSocket 消息泵 (Message Pump)
 - [ ] WebSocket JSON 解析
 - [ ] HTTP 参数校验 (Validator)
 - [ ] 完善单元测试与 Benchmarks 对比
