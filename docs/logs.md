@@ -44,3 +44,4 @@ if strings.Contains(request.Header.Get("Accept"), "text/event-stream") {
 
 - 引入`Driver`接口，包括`Serve()`方法、`Stop()`方法、`ApplyMiddlewares()`方法、`Match()`方法，**用户可根据实际需求实现这个接口，从而传入自定义的驱动**
 - 将`Multiplexer`结构体进行重构，使用`protocol`结构体存储`Matcher`与`FakeListener`，有利于后续扩展协议树，从而加快匹配速度，且可以根据传入的`net.Addr`
+- 对`Fuse`的代码进行重构，解耦了优雅停机，新增注册驱动的方法，将挂载中间件的代码也进行解耦，同时对各个引擎返回进行类型断言
