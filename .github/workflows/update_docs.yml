@@ -22,7 +22,6 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-          ssh-key: ${{ secrets.SSH_KEY }}
 
       - name: Setup Go
         uses: actions/setup-go@v3
