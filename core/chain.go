@@ -1,5 +1,8 @@
 package core
 
+// HandlerFunc 是 func(Ctx) Result 的别名。
+//
+// 它接收 [Ctx] 接口作为参数，返回 [Result] 结构体。
 type HandlerFunc func(Ctx) Result
 
 //type Handler func(Ctx)

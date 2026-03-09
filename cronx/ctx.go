@@ -1,25 +1,47 @@
 package cronx
 
 import (
-	"Fuse/core"
 	"context"
 	"errors"
 	"sync"
+
+	"github.com/xianbo-deep/Fuse/core"
 )
 
+// Ctx 是 cronx 模块中的标准上下文。
+//
+// 它为定时任务提供了与 HTTP/gRPC 请求类似的上下文管理能力，包括中间件支持、
+// 键值存储、错误收集和取消控制，但针对定时任务的特殊需求进行了优化。
+//
+// 与 HTTP/gRPC 上下文不同，CronCtx 不支持请求参数绑定（Bind）、路径参数（Param）
+// 和查询参数（Query），因为这些概念不适用于定时任务执行。
 type Ctx struct {
+	// ctx 底层上下文
 	ctx context.Context
 
-	values  map[string]any
+	// values 存储键值对
+	values map[string]any
+	// aborted 标记是否已终止当前中间件链的执行。
 	aborted bool
 
-	index    int
+	// index 是当前执行的中间件在处理链中的索引位置。
+	//
+	// 每次调用 Next() 方法时递增，用于控制中间件的执行流程。
+	index int
+	// handlers 是注册的中间件处理函数链。
 	handlers []core.HandlerFunc
 
+	// errs 记录任务执行过程中收集的所有错误。
 	errs []error
-	mu   sync.RWMutex
+	// mu 是读写锁，保护对共享字段的并发访问。
+	mu sync.RWMutex
 }
 
+// NewCtx 创建一个新的定时任务上下文实例。
+//
+// ctx: 可选的底层 context.Context，如果为 nil 将使用 context.Background()。
+//
+// 返回值: 初始化后的 Ctx 指针，values 字段已分配空映射。
 func NewCtx(ctx context.Context) *Ctx {
 	if ctx == nil {
 		ctx = context.Background()
@@ -30,12 +52,20 @@ func NewCtx(ctx context.Context) *Ctx {
 	}
 }
 
+// Context 返回底层的上下文。
+//
+// 使用读锁保证线程安全。
 func (c *Ctx) Context() context.Context {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.ctx
 }
 
+// WithContext 替换底层的上下文。
+//
+// 若传入上下文为空，使用默认的空上下文。
+//
+// 使用写锁保证线程安全。
 func (c *Ctx) WithContext(ctx context.Context) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -45,10 +75,14 @@ func (c *Ctx) WithContext(ctx context.Context) {
 	c.mu.Unlock()
 }
 
+// Aborted 返回当前中间件链是否已被终止。
 func (c *Ctx) Aborted() bool {
 	return c.aborted
 }
 
+// Next 执行中间件链中的下一个处理函数。
+//
+// 返回值：下一个中间件或任务处理函数返回的 [core.Result]。
 func (c *Ctx) Next() core.Result {
 	c.index++
 	if c.index < len(c.handlers) {
@@ -60,17 +94,24 @@ func (c *Ctx) Next() core.Result {
 	return core.Result{}
 }
 
+// Abort 终止当前中间件链的执行。
 func (c *Ctx) Abort() {
 	c.aborted = true
 	c.index = len(c.handlers)
 }
 
+// Set 在当前上下文中存储一个键值对。
+// key: 存储的键名。
+// val: 存储的值，可以是任意类型。
 func (c *Ctx) Set(key string, val any) {
 	c.mu.Lock()
 	c.values[key] = val
 	c.mu.Unlock()
 }
 
+// Get 从当前上下文中获取已存储的值。
+// key: 要获取的键名。
+// 返回值: 存储的值和是否存在标志。如果键不存在，第二个返回值为 false。
 func (c *Ctx) Get(key string) (any, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -78,10 +119,16 @@ func (c *Ctx) Get(key string) (any, bool) {
 	return val, ok
 }
 
+// Render 渲染并返回输出结果。
+//
+// 在 cronx 模块中这里采用空实现，因为是定时任务，无需对结果进行渲染。
 func (c *Ctx) Render(result core.Result) {
 
 }
 
+// Copy 创建当前上下文的一个深拷贝副本。
+//
+// 在执行异步任务需要传递上下文时，需要调用此方法生成一个上下文副本，保证线程安全。
 func (c *Ctx) Copy() core.Ctx {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -102,14 +149,17 @@ func (c *Ctx) Copy() core.Ctx {
 	return cp
 }
 
+// Success
 func (c *Ctx) Success(data any) core.Result {
 	return core.Result{Code: core.CodeSuccess, Data: data}
 }
 
+// Fail
 func (c *Ctx) Fail(code int, msg string) core.Result {
 	return core.Result{Code: code, Msg: msg}
 }
 
+// FailWithError
 func (c *Ctx) FailWithError(err error) core.Result {
 	if err == nil {
 		return c.Success(nil)
@@ -121,10 +171,16 @@ func (c *Ctx) FailWithError(err error) core.Result {
 	return c.Fail(core.CodeInternal, err.Error())
 }
 
+// Param 获取路径参数。
+//
+// 在当前模块进行空实现。
 func (c *Ctx) Param(key string) string {
 	return ""
 }
 
+// Query 获取查询参数。
+//
+// 在当前模块进行空实现。
 func (c *Ctx) Query(key string) string {
 	return ""
 }

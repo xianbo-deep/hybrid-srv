@@ -1,10 +1,10 @@
 package httpx
 
 import (
-	"Fuse/core"
-	"Fuse/middleware"
 	"context"
 	"errors"
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/middleware"
 	"net/http"
 	"strings"
 	"sync"

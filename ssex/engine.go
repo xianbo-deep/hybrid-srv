@@ -1,12 +1,13 @@
 package ssex
 
 import (
-	"Fuse/core"
-	"Fuse/httpx"
 	"errors"
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/httpx"
 	"net/http"
 )
 
+// SSEHandlerFunc 是
 type SSEHandlerFunc func(c core.Ctx, stream *Stream) error
 
 func Upgrade(sseHandler SSEHandlerFunc) core.HandlerFunc {

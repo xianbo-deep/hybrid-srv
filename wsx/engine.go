@@ -1,8 +1,8 @@
 package wsx
 
 import (
-	"Fuse/core"
-	"Fuse/httpx"
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/httpx"
 	"net/http"
 	"strings"
 	"sync"

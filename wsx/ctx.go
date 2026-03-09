@@ -1,12 +1,15 @@
 package wsx
 
 import (
-	"Fuse/core"
 	"encoding/json"
+	"github.com/xianbo-deep/Fuse/core"
 
 	"github.com/gorilla/websocket"
 )
 
+// WsContext 是 Websocket 协议中所需的上下文。
+//
+// 用户需要在 [WsHandlerFunc] 中
 type WsContext struct {
 	core.Ctx
 	Conn      *websocket.Conn
@@ -45,7 +48,7 @@ func (wsc *WsContext) SendJSON(obj interface{}) error {
 	return nil
 }
 
-// 关闭TCP连接
+// Close 用于关闭底层的 TCP 连接。
 func (wsc *WsContext) Close() error {
 	return wsc.Conn.Close()
 }

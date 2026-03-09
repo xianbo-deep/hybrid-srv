@@ -1,7 +1,7 @@
 package httpx
 
 import (
-	"Fuse/core"
+	"github.com/xianbo-deep/Fuse/core"
 )
 
 type HandlerChain []core.HandlerFunc

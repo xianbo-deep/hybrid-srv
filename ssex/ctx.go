@@ -1,11 +1,11 @@
 package ssex
 
 import (
-	"Fuse/httpx"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xianbo-deep/Fuse/httpx"
 	"strings"
 	"sync"
 	"time"

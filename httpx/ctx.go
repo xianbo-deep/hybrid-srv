@@ -1,7 +1,6 @@
 package httpx
 
 import (
-	"Fuse/core"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +8,8 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+
+	"github.com/xianbo-deep/Fuse/core"
 )
 
 type Ctx struct {

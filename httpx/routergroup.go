@@ -1,6 +1,6 @@
 package httpx
 
-import "Fuse/core"
+import "github.com/xianbo-deep/Fuse/core"
 
 type RouterGroup struct {
 	prefix string             // 公共前缀
@@ -34,7 +34,7 @@ func (group *RouterGroup) addRoute(method string, comp string, handler HandlerCh
 
 	handlers = append(handlers, group.mws...)
 	handlers = append(handlers, handler...)
-	
+
 	// 添加路由
 	group.engine.router.Add(method, pattern, handlers)
 }

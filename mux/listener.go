@@ -4,6 +4,7 @@ import (
 	"net"
 )
 
+// FakeListener 是虚拟监听器
 type FakeListener struct {
 	addr     net.Addr
 	connChan chan net.Conn

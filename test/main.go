@@ -1,10 +1,10 @@
 package main
 
 import (
-	"Fuse/fuse"
-	"Fuse/middleware"
-	"Fuse/ssex"
-	"Fuse/wsx"
+	"github.com/xianbo-deep/Fuse/fuse"
+	"github.com/xianbo-deep/Fuse/middleware"
+	"github.com/xianbo-deep/Fuse/ssex"
+	"github.com/xianbo-deep/Fuse/wsx"
 	"log"
 	"net/http"
 	"time"

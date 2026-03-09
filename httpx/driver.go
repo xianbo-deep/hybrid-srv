@@ -1,9 +1,9 @@
 package httpx
 
 import (
-	"Fuse/core"
-	"Fuse/mux"
 	"context"
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/mux"
 	"net"
 	"net/http"
 )

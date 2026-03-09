@@ -1,19 +1,20 @@
 package fuse
 
 import (
-	"Fuse/core"
-	"Fuse/cronx"
-	"Fuse/grpcx"
-	"Fuse/httpx"
-	"Fuse/middleware"
-	"Fuse/mux"
-	"Fuse/wsx"
 	"context"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/cronx"
+	"github.com/xianbo-deep/Fuse/grpcx"
+	"github.com/xianbo-deep/Fuse/httpx"
+	"github.com/xianbo-deep/Fuse/middleware"
+	"github.com/xianbo-deep/Fuse/mux"
+	"github.com/xianbo-deep/Fuse/wsx"
 )
 
 const (
@@ -34,6 +35,7 @@ type WsContext = wsx.WsContext
 
 var NewError = core.NewError
 
+// Fuse 是
 type Fuse struct {
 	// 引擎
 	drivers map[string]mux.Driver

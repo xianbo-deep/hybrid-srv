@@ -1,11 +1,11 @@
 package core
 
-/* 简短类型别名 */
+// H 是 map[string]any 的简短类型别名，用于方便地构建 JSON 响应数据。
 type H map[string]any
 
-/*
-跨协议返回值
-*/
+// Result 是 Fuse 框架的跨协议统一返回值结构体。
+//
+// 它封装了业务响应数据，可以在 HTTP、gRPC 等不同协议间保持一致的数据结构。
 type Result struct {
 	// 0表示成功 其它表示失败
 	Code int    `json:"code"`
@@ -22,6 +22,11 @@ type Result struct {
 	grpcStatus int
 }
 
+// Success 创建一个成功的 [Result] 实例。
+//
+// data: 成功时返回的业务数据，可以是任意类型（结构体、切片、基础类型等）。
+//
+// 返回值: Code 为 0 的成功 [Result]，Msg 为空字符串。
 func Success(data any) Result {
 	return Result{
 		Code: 0,
@@ -29,6 +34,13 @@ func Success(data any) Result {
 	}
 }
 
+// Fail 创建一个失败的 [Result] 实例。
+//
+// code: 业务错误码，非零值，建议在业务层统一定义。
+//
+// msg: 错误描述信息，用于客户端展示和日志记录。
+//
+// 返回值: 包含指定错误码和信息的 [Result]，Data 为 nil。
 func Fail(code int, msg string) Result {
 	return Result{
 		Code: code,

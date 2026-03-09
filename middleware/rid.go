@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"Fuse/core"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/xianbo-deep/Fuse/core"
 	"time"
 )
 

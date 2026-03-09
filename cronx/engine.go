@@ -1,9 +1,9 @@
 package cronx
 
 import (
-	"Fuse/core"
-	"Fuse/middleware"
 	"context"
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/middleware"
 
 	"github.com/robfig/cron/v3"
 )

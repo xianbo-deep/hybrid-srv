@@ -6,11 +6,15 @@ import (
 	"time"
 )
 
+// FuseConn 是 net.Conn 的包装器
 type FuseConn struct {
 	conn   net.Conn
 	reader *bufio.Reader
 }
 
+// NewFuseConn 接收原始 TCP 连接，返回一个 *FuseConn 实例。
+//
+// conn：类型为 net.Conn，底层 TCP 连接
 func NewFuseConn(conn net.Conn) *FuseConn {
 	return &FuseConn{
 		conn:   conn,

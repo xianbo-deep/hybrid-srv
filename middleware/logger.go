@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"Fuse/core"
 	"fmt"
+	"github.com/xianbo-deep/Fuse/core"
 	"log"
 	"time"
 )

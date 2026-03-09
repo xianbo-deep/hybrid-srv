@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"Fuse/core"
+	"github.com/xianbo-deep/Fuse/core"
 )
 
 func Defaults() []core.HandlerFunc {
