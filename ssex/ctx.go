@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xianbo-deep/Fuse/httpx"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/xianbo-deep/Fuse/httpx"
 )
 
+// Stream 是 SSE 模块暴露给用户的流式上下文
 type Stream struct {
 	ctx    *httpx.Ctx
 	reqCtx context.Context
@@ -28,7 +30,7 @@ func NewStream(ctx *httpx.Ctx) *Stream {
 
 var errClosed = errors.New("connection closed by client")
 
-// 发送数据
+// Send 从服务端发送数据给客户端
 func (s *Stream) Send(event string, data any) error {
 	// 进行心跳检测 客户端断连直接返回错误
 	select {
@@ -86,6 +88,14 @@ func (s *Stream) Send(event string, data any) error {
 	return nil
 }
 
+// startHeartPingPong 执行心跳检测，会单独开启一个协程执行此任务，因此要防止资源泄漏。
+//
+// 发送 ping 时添加写锁，防止流式传输信息与心跳检测任务冲突，保证线程安全。
+//
+// 使用定时器每隔10s执行一次 ping ，防止 TCP 连接无字节传输时网关（如Nginx）对连接进行掐断。
+//
+// 对用户请求的 Context 的 Done 通道进行监听，在用户断连时可以停止心跳检测，防止资源泄漏。
+//
 func (s *Stream) startHeartPingPong() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()

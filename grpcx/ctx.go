@@ -3,12 +3,16 @@ package grpcx
 import (
 	"context"
 	"errors"
-	"github.com/xianbo-deep/Fuse/core"
 	"sync"
+
+	"github.com/xianbo-deep/Fuse/core"
 
 	"google.golang.org/grpc/codes"
 )
 
+// Ctx 是 grpcx 模块的默认上下文。
+//
+// 实现了 [core.Ctx] 接口。
 type Ctx struct {
 	ctx context.Context
 

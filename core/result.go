@@ -48,11 +48,13 @@ func Fail(code int, msg string) Result {
 	}
 }
 
+// WithMsg 设置返回 [Result] 的 Msg，支持链式调用。
 func (r Result) WithMsg(msg string) Result {
 	r.Msg = msg
 	return r
 }
 
+// WithMeta 设置返回 [Result] 的元数据，支持链式调用。
 func (r Result) WithMeta(k, v string) Result {
 	if r.Meta == nil {
 		r.Meta = map[string]string{}
@@ -61,23 +63,30 @@ func (r Result) WithMeta(k, v string) Result {
 	return r
 }
 
+// WithData 设置返回 [Result] 携带的信息，支持链式调用。
 func (r Result) WithData(data any) Result {
 	r.Data = data
 	return r
 }
 
+// WithHttpStatus 设置 [Result] 的 HTTP 状态码。
 func (r Result) WithHttpStatus(status int) Result {
 	r.httpStatus = status
 	return r
 }
+
+// GetHttpStatus 获取 [Result] 的 HTTP 状态码。
 func (r Result) GetHttpStatus() int {
 	return r.httpStatus
 }
 
+// WithGrpcStatus 设置 [Result] 的 GRPC 状态码。
 func (r Result) WithGrpcStatus(grpcStatus int) Result {
 	r.grpcStatus = grpcStatus
 	return r
 }
+
+// GetGrpcStatus 获取 [Result] 的 GRPC 状态码。
 func (r Result) GetGrpcStatus() int {
 	return r.grpcStatus
 }

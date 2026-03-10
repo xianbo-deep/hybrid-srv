@@ -9,14 +9,27 @@ const (
 	wildcard
 )
 
+// node 是 radix tree 的节点。
+//
+// 对于路由参数（如/user/:id），使用一个节点进行单独存储。
+//
+// 目前缺乏对查询参数的处理。
 type node struct {
-	pattern  string  // 完整路由
-	path     string  // 路由当前段
-	children []*node // 子节点
-	nodeType uint8   // 节点类型
+	// pattern 完整路由，只在根节点不为空。
+	pattern string
+	// path 路由当前段
+	path string
+	// children 当前节点的子节点
+	children []*node
+	// nodeType 当前节点类型
+	nodeType uint8
 }
 
-// 插入路由节点
+// insert 根据请求路由往树中插入节点，实行递归插入。
+//
+// 终止条件为未匹配的路径 path 的长度为 0。
+//
+// 截取动态路由，若有则实行插入，否则计算未匹配路由和当前节点的公共前缀，根据公共前缀执行静态路由的插入。
 func (n *node) insert(path string, pattern string) {
 	if len(path) == 0 {
 		n.pattern = pattern
@@ -139,7 +152,7 @@ func (n *node) insert(path string, pattern string) {
 	}
 }
 
-// 返回公共前缀长度
+// longestCommonPrefix 根据传入的字符串返回公共前缀长度。
 func longestCommonPrefix(a, b string) int {
 	var i int
 	length := min(len(a), len(b))
@@ -149,7 +162,7 @@ func longestCommonPrefix(a, b string) int {
 	return i
 }
 
-// 查找匹配的路由节点
+// search 查找匹配的路由节点
 func (n *node) search(path string, params map[string]string) *node {
 	if len(path) < len(n.path) || !strings.HasPrefix(path, n.path) {
 		return nil

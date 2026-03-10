@@ -101,7 +101,9 @@ func (c *Ctx) Abort() {
 }
 
 // Set 在当前上下文中存储一个键值对。
+//
 // key: 存储的键名。
+//
 // val: 存储的值，可以是任意类型。
 func (c *Ctx) Set(key string, val any) {
 	c.mu.Lock()
@@ -110,7 +112,9 @@ func (c *Ctx) Set(key string, val any) {
 }
 
 // Get 从当前上下文中获取已存储的值。
+//
 // key: 要获取的键名。
+//
 // 返回值: 存储的值和是否存在标志。如果键不存在，第二个返回值为 false。
 func (c *Ctx) Get(key string) (any, bool) {
 	c.mu.RLock()
@@ -149,17 +153,22 @@ func (c *Ctx) Copy() core.Ctx {
 	return cp
 }
 
-// Success
+// Success 构造一个成功的响应结果
+//
+// data: 成功响应中携带的业务数据，可以是任意类型。
 func (c *Ctx) Success(data any) core.Result {
 	return core.Result{Code: core.CodeSuccess, Data: data}
 }
 
-// Fail
+// Fail 构造一个失败的响应结果，包含错误码和错误信息。
 func (c *Ctx) Fail(code int, msg string) core.Result {
 	return core.Result{Code: code, Msg: msg}
 }
 
-// FailWithError
+// FailWithError 使用 error 对象构造一个失败的响应结果。
+//
+// 内部对 [core.BizError] 进行类型断言，检查传入的 err 对象是否是自定义的 [core.BizError]，如果是则直接复用 err 对象的错误状态码和信息，
+// 否则返回默认的错误状态码和信息。
 func (c *Ctx) FailWithError(err error) core.Result {
 	if err == nil {
 		return c.Success(nil)
@@ -185,10 +194,12 @@ func (c *Ctx) Query(key string) string {
 	return ""
 }
 
+// Bind 返回错误，在 cronx 模块不需要进行结构体绑定。
 func (c *Ctx) Bind(v any) error {
 	return errors.New("cron engine does not support request binding")
 }
 
+// Err 记录一个错误到上下文错误列表中。
 func (c *Ctx) Err(err error) {
 	if err == nil {
 		return
@@ -196,6 +207,7 @@ func (c *Ctx) Err(err error) {
 	c.errs = append(c.errs, err)
 }
 
+// Error 返回最后一个被记录的错误，如果没有错误则返回 nil。
 func (c *Ctx) Error() error {
 	if len(c.errs) == 0 {
 		return nil
@@ -203,6 +215,7 @@ func (c *Ctx) Error() error {
 	return c.errs[len(c.errs)-1]
 }
 
+// Errors 返回当前上下文中记录的所有错误列表。
 func (c *Ctx) Errors() []error {
 	out := make([]error, len(c.errs))
 	copy(out, c.errs)

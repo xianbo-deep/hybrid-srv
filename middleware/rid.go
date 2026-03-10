@@ -4,10 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/xianbo-deep/Fuse/core"
 	"time"
+
+	"github.com/xianbo-deep/Fuse/core"
 )
 
+// RequestID 基于时间戳和随机数给每个请求生成唯一ID。
 func RequestID() core.HandlerFunc {
 	return func(c core.Ctx) core.Result {
 		// 已存在则跳过

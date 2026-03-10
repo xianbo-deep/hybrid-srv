@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/xianbo-deep/Fuse/core"
 	"log"
 	"time"
+
+	"github.com/xianbo-deep/Fuse/core"
 )
 
+// Logger 日志记录中间件。
 func Logger() core.HandlerFunc {
 	return func(c core.Ctx) core.Result {
 		start := time.Now()

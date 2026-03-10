@@ -2,12 +2,14 @@ package httpx
 
 import (
 	"context"
-	"github.com/xianbo-deep/Fuse/core"
-	"github.com/xianbo-deep/Fuse/mux"
 	"net"
 	"net/http"
+
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/mux"
 )
 
+// Driver
 type Driver struct {
 	engine *Engine
 	server *http.Server

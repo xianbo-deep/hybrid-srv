@@ -1,12 +1,13 @@
 package wsx
 
 import (
-	"github.com/xianbo-deep/Fuse/core"
-	"github.com/xianbo-deep/Fuse/httpx"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/xianbo-deep/Fuse/core"
+	"github.com/xianbo-deep/Fuse/httpx"
 
 	"github.com/gorilla/websocket"
 )
@@ -19,12 +20,15 @@ type WebsocketConfig struct {
 	AllowedOrigins []string
 }
 
+// defaultWebsocketConfig 默认的 websocket 配置。
 var defaultWebsocketConfig = WebsocketConfig{
+	// PingInterval 每次 ping 间隔时间: 54s
 	PingInterval: time.Second * 54,
-	WaitTimeout:  time.Second * 60,
+	// WaitTimeout 等待客户端响应超时时间: 60s
+	WaitTimeout: time.Second * 60,
 }
 
-// 转换器 把用户写的WsHandlerFunc转换成HandlerFunc
+// Upgrade 转换器 把用户写的 [WsHandlerFunc] 转换成 [core.HandlerFunc]
 func Upgrade(wshandlerFunc WsHandlerFunc, config ...WebsocketConfig) core.HandlerFunc {
 	var cfg WebsocketConfig
 	if len(config) != 0 {
