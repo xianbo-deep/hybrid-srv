@@ -6,6 +6,12 @@ const (
 	CtxKeyMethod    = "method"
 	CtxKeyPath      = "path"
 	CtxKeyProtocol  = "protocol"
+	CtxKeyTraceID   = "trace-id"
+)
+
+// 默认traceID
+const (
+	DefaultTraceID = "unknown-trace-id"
 )
 
 // 协议名称

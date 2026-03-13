@@ -3,6 +3,7 @@ package httpx
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -11,10 +12,12 @@ import (
 	"github.com/xianbo-deep/Fuse/middleware"
 )
 
+// Engine 是 Http 模块的底层引擎。
 type Engine struct {
 	router *Router
 	pool   sync.Pool
 	*RouterGroup
+	trustedProxies []*net.IPNet
 }
 
 func New() *Engine {
@@ -27,7 +30,7 @@ func New() *Engine {
 		engine: e,
 	}
 	e.pool.New = func() any {
-		c := NewCtx(context.Background())
+		c := NewCtx(context.Background(), e)
 		return c
 	}
 	return e
@@ -100,4 +103,43 @@ func (e *Engine) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+}
+
+// SetTrustedProxies 设置可信代理
+func (e *Engine) SetTrustedProxies(proxies []string) error {
+	e.trustedProxies = make([]*net.IPNet, 0, len(proxies))
+	for _, proxy := range proxies {
+		if !strings.Contains(proxy, "/") {
+			if strings.Contains(proxy, ":") {
+				proxy += "/128"
+			} else {
+				proxy += "/32"
+			}
+		}
+
+		// 转换类型
+		_, ipNet, err := net.ParseCIDR(proxy)
+		if err != nil {
+			return err
+		}
+		e.trustedProxies = append(e.trustedProxies, ipNet)
+	}
+	return nil
+}
+
+// IsTrustedProxy 判断代理是否可信
+func (e *Engine) IsTrustedProxy(ip string) bool {
+	if len(e.trustedProxies) == 0 {
+		return false
+	}
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return false
+	}
+	for _, proxy := range e.trustedProxies {
+		if proxy.Contains(parsedIP) {
+			return true
+		}
+	}
+	return false
 }

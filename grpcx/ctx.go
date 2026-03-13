@@ -235,6 +235,10 @@ func (c *Ctx) reset() {
 	c.errs = c.errs[:0]
 }
 
+func (c *Ctx) ClientIP() string {
+	return ""
+}
+
 // grpcCodeFromBizCode 业务状态码与GRPC状态码的映射。
 func grpcCodeFromBizCode(code int) codes.Code {
 	switch code {

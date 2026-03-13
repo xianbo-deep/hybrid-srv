@@ -10,5 +10,7 @@ func Defaults() []core.HandlerFunc {
 		Recovery(),
 		RequestID(),
 		Logger(),
+		RateLimit(),
+		DistributedTrace(),
 	}
 }

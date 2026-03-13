@@ -1,6 +1,8 @@
 package httpx
 
 import (
+	"strings"
+
 	"github.com/xianbo-deep/Fuse/core"
 )
 
@@ -45,6 +47,11 @@ func (r *Router) Add(method, pattern string, handler HandlerChain) {
 // Match 根据传入的请求方法和真实的请求路由找到最终的函数执行链，并返回路由参数和路由参数值。
 func (r *Router) Match(method, path string) (HandlerChain, map[string]string) {
 	params := make(map[string]string)
+	// 截断查询参数
+	idx := strings.Index(path, "?")
+	if idx != -1 {
+		path = path[:idx]
+	}
 	// 查看是否有对应的方法
 	root, ok := r.routes[method]
 	if !ok {

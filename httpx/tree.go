@@ -12,8 +12,6 @@ const (
 // node 是 radix tree 的节点。
 //
 // 对于路由参数（如/user/:id），使用一个节点进行单独存储。
-//
-// 目前缺乏对查询参数的处理。
 type node struct {
 	// pattern 完整路由，只在根节点不为空。
 	pattern string

@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/xianbo-deep/Fuse/core"
@@ -15,6 +17,9 @@ import (
 // Ctx
 type Ctx struct {
 	ctx context.Context
+
+	// 底层引擎
+	engine *Engine
 
 	// http相关
 	Writer  *core.ResponseWriterWrapper
@@ -138,11 +143,11 @@ func (c *Ctx) Errors() []error {
 	return out
 }
 
-func NewCtx(ctx context.Context) *Ctx {
+func NewCtx(ctx context.Context, engine *Engine) *Ctx {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &Ctx{ctx: ctx, values: make(map[string]any), handlers: make([]core.HandlerFunc, 0, 64)}
+	return &Ctx{ctx: ctx, values: make(map[string]any), handlers: make([]core.HandlerFunc, 0, 64), engine: engine}
 }
 
 // 设置状态码
@@ -342,6 +347,42 @@ func (c *Ctx) SetSSEHeader() {
 	c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
+}
+
+func (c *Ctx) ClientIP() string {
+	// 获取底层TCP连接的IP
+	remoteIP, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+	if err != nil {
+		remoteIP = c.Request.RemoteAddr
+	}
+	// 判断是否是可信代理
+	if !c.engine.IsTrustedProxy(remoteIP) {
+		return remoteIP
+	}
+	// 从 X-Forwarded-For 获取
+	xForwardedFor := c.Request.Header.Get("X-Forwarded-For")
+	if xForwardedFor != "" {
+		ips := strings.Split(xForwardedFor, ",")
+		for _, ip := range ips {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+	// 从 X-Real-IP 获取
+	xRealIP := c.Request.Header.Get("X-Real-Ip")
+	if xRealIP != "" {
+		return strings.TrimSpace(xRealIP)
+	}
+
+	// 从 TCP 连接获取
+	ip, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+	if err != nil {
+		return c.Request.RemoteAddr
+	}
+
+	return ip
 }
 
 // 状态码切换

@@ -199,6 +199,11 @@ func (c *Ctx) Bind(v any) error {
 	return errors.New("cron engine does not support request binding")
 }
 
+// ClientIP 获取客户端IP，进行空实现。
+func (c *Ctx) ClientIP() string {
+	return ""
+}
+
 // Err 记录一个错误到上下文错误列表中。
 func (c *Ctx) Err(err error) {
 	if err == nil {

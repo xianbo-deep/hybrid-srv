@@ -93,4 +93,7 @@ type Ctx interface {
 	Error() error
 	// Errors 返回当前上下文中记录的所有错误列表。
 	Errors() []error
+
+	// ClientIP 获得当前请求的IP。
+	ClientIP() string
 }

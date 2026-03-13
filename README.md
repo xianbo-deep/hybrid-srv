@@ -88,12 +88,12 @@ func main() {
 - [x] 实现单端口协议分发 (CMUX)
 - [x] WebSocket 消息泵 (Message Pump)
 - [ ] CMUX 实现协议树
-- [ ] CMUX 实现协议动态注册
+- [x] CMUX 实现协议动态注册
 - [ ] 增加更多通用中间件 (Limit, Auth, Trace)
 - [ ] WebSocket JSON 解析
 - [ ] HTTP 参数校验 (Validator)
 - [ ] 完善单元测试与 Benchmarks 对比
-- [ ] 完善 GoDoc
+- [x] 完善 GoDoc
 - [ ] 补充相关文档
 
 更多详细设计和用法请阅读 [docs](./docs) 目录下的文档。
