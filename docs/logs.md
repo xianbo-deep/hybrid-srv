@@ -46,9 +46,10 @@ if strings.Contains(request.Header.Get("Accept"), "text/event-stream") {
 
 # 2026-03-12
 
-写限流中间件的时候发现需要获取请求IP以限流，就去给Ctx加了个方法，用于获取客户端真实IP，但是发现需要实现可信代理，在http引擎加方法以设置可信代理
+写限流中间件的时候发现需要获取请求IP以限流，就去给Ctx接口加了个方法，用于获取客户端真实IP，但是发现需要实现可信代理，在http引擎加方法以设置可信代理
 
 - 用户传入的代理是纯IP，需要加 /32 以表示这是单个主机，ipv6则是加 /128
+- 使用 `net.ParseCIDR()`方法将字符串转换成 `ip.Net`对象
 - 用户传入的是网段则直接添加到可信代理列表即可
 - 后面的数字是网络掩码，表示前几位是固定的，是一个网段
 
@@ -57,5 +58,13 @@ if strings.Contains(request.Header.Get("Accept"), "text/event-stream") {
 
 通过 LRU 缓存管理限流器，只保留最近的10000个限流器，防止OOM，用了封装好的双向链表进行查找。
 
-看了 Gin 对于 Query 的解析，它们会对 Query 进行提前的缓存，后续重复查询时调用缓存即可，防止高并发下性能的损失，但是我目前的方法是每次 Query 都会触发 URL.Query 的解析，高并发场景下性能会差一点
+除此之外，看了 Gin 对于 Query 的解析，它们会对 Query 进行提前的缓存，后续重复查询时调用缓存即可，防止高并发下性能的损失，但是我目前的方法是每次 Query 都会触发 URL.Query 的解析，高并发场景下性能会差一点
 
+
+# 2026-03-14
+
+今天看了下 GRPC 如何获取客户端 IP，GRPC 协议下请求头等信息都是在 metadata 里面的，因此要先用 `metadata.FromIncomingContext()` 从ctx里面拿到元信息，然后正常从 metadata 里面获取客户端IP
+
+如果之前从请求头获取IP失败了，就需要从底层TCP连接获取：调用 `peer.FromContext()`方法从上下文获取 Peek 指针，进行类型断言，获取不带端口号的纯净IP。如果这条路走不通，直接拿原始字符串调用 `net.SplitHostPort()` 方法分隔端口获取IP
+
+今天还发现 GRPC 的 Serve 方法是有严重 bug 的：在 Serve 方法我又重新初始化了 Server ，并且 grpc server 自带的优雅停机是阻塞的，如果客户端不断开连接，grpc 服务会永久阻塞，后续修改为开启一个协程执行gprc的优雅停机，并使用通道来进行监听，如果5s内不关闭进行强制停止
