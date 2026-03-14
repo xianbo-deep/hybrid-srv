@@ -89,7 +89,7 @@ func main() {
 - [x] WebSocket 消息泵 (Message Pump)
 - [ ] CMUX 实现协议树
 - [x] CMUX 实现协议动态注册
-- [ ] 增加更多通用中间件 (Limit, Auth, Trace)
+- [x] 增加更多通用中间件 (Limit, Trace)
 - [ ] WebSocket JSON 解析
 - [ ] HTTP 参数校验 (Validator)
 - [ ] 完善单元测试与 Benchmarks 对比

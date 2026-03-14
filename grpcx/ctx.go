@@ -3,9 +3,13 @@ package grpcx
 import (
 	"context"
 	"errors"
+	"net"
+	"strings"
 	"sync"
 
 	"github.com/xianbo-deep/Fuse/core"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 
 	"google.golang.org/grpc/codes"
 )
@@ -29,6 +33,9 @@ type Ctx struct {
 
 	errs []error
 	mu   sync.RWMutex
+
+	// 引擎
+	engine *Engine
 }
 
 // NewCtx 创建一个新的GRPC上下文实例。
@@ -36,7 +43,7 @@ type Ctx struct {
 // ctx: 可选的底层 context.Context，如果为 nil 将使用 context.Background()。
 //
 // 返回值: 初始化后的 [Ctx] 指针，values 字段已分配空映射。
-func NewCtx(ctx context.Context) *Ctx {
+func NewCtx(ctx context.Context, engine *Engine) *Ctx {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -44,6 +51,7 @@ func NewCtx(ctx context.Context) *Ctx {
 		ctx:      ctx,
 		values:   make(map[string]any),
 		handlers: make([]core.HandlerFunc, 0, 64),
+		engine:   engine,
 	}
 }
 
@@ -235,8 +243,54 @@ func (c *Ctx) reset() {
 	c.errs = c.errs[:0]
 }
 
+// ClientIP 获取客户端IP。
 func (c *Ctx) ClientIP() string {
-	return ""
+	var peerIP string
+	// 从底层 TCP 连接获取
+	p, ok := peer.FromContext(c.ctx)
+	if ok && p.Addr != nil {
+		// 类型断言
+		if tcpAddr, ok := p.Addr.(*net.TCPAddr); ok {
+			// 获取纯净 IP ，不带上端口号
+			peerIP = tcpAddr.IP.String()
+		} else {
+			// 使用传统方法剖离端口
+			host, _, err := net.SplitHostPort(p.Addr.String())
+			if err == nil {
+				peerIP = host
+			} else {
+				// 解析失败 返回原始字符串
+				peerIP = p.Addr.String()
+			}
+		}
+	}
+
+	if !c.engine.IsTrustedProxies(peerIP) {
+		return peerIP
+	}
+
+	// grpc 需要从 meta 中获取 header
+	md, ok := metadata.FromIncomingContext(c.ctx)
+	if ok {
+		// 从 x-forwarded-for获取
+		if xff := md.Get("x-forwarded-for"); len(xff) > 0 {
+			ips := strings.Split(xff[0], ",")
+			if len(ips) > 0 {
+				ip := strings.TrimSpace(ips[0])
+				if ip != "" {
+					return ip
+				}
+			}
+		}
+		// 从 x-real-ip获取
+		if xrip := md.Get("x-real-ip"); len(xrip) > 0 {
+			ip := strings.TrimSpace(xrip[0])
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+	return peerIP
 }
 
 // grpcCodeFromBizCode 业务状态码与GRPC状态码的映射。

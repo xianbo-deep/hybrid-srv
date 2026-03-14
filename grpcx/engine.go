@@ -2,7 +2,9 @@ package grpcx
 
 import (
 	"context"
+	"net"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/xianbo-deep/Fuse/core"
@@ -24,6 +26,8 @@ type Engine struct {
 	mws []core.HandlerFunc
 	// pool 是 Ctx 对象的同步池，用于重用上下文实例，减少内存分配和垃圾回收压力。
 	pool sync.Pool
+	// trustedProxies 可信代理。
+	trustedProxies []*net.IPNet
 }
 
 // New 创建一个新的 gRPC 引擎实例，可选的 gRPC 服务器配置选项。
@@ -46,7 +50,7 @@ func New(opts ...grpc.ServerOption) *Engine {
 	}
 
 	e.pool.New = func() any {
-		c := NewCtx(context.Background())
+		c := NewCtx(context.Background(), e)
 		return c
 	}
 	return e
@@ -60,26 +64,18 @@ func Default() *Engine {
 }
 
 // Use 向引擎注册一个或多个中间件。
-func (e *Engine) Use(middleware ...core.HandlerFunc) {
-	e.mws = append(e.mws, middleware...)
+func (e *Engine) Use(mws ...core.HandlerFunc) {
+	e.mws = append(e.mws, mws...)
 }
 
-// Server 返回底层的 gRPC 服务器实例，允许用户注册具体的 gRPC 服务。
+// Server 返回底层的 [grpc.Server] 实例。
+//
+// 主要用于驱动层获取并启动服务，或者用于注册 gRPC 服务。
 func (e *Engine) Server() *grpc.Server {
 	return e.server
 }
 
-// unaryInterceptor 创建并返回一元 RPC 的服务器拦截器。
-// 这个拦截器负责将 gRPC 的一元调用转换为 Fuse 的中间件执行流程，
-// 包括上下文管理、中间件链执行、错误处理和元数据传递。
-//
-// 拦截器执行流程：
-//  1. 从对象池获取或创建上下文
-//  2. 设置协议、方法和路径元信息
-//  3. 执行中间件链（包括业务中间件）
-//  4. 执行业务处理函数
-//  5. 处理结果，映射状态码
-//  6. 重置并回收上下文
+// unaryInterceptor 返回一元拦截器
 func (e *Engine) unaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		// 获取新的上下文
@@ -205,4 +201,44 @@ func (e *Engine) streamInterceptor() grpc.StreamServerInterceptor {
 
 		return nil
 	}
+}
+
+// SetTrustedProxies 设置可信代理。
+func (e *Engine) SetTrustedProxies(trustedProxies []string) error {
+	e.trustedProxies = make([]*net.IPNet, 0, len(trustedProxies))
+	for _, proxy := range trustedProxies {
+		if !strings.Contains(proxy, "/") {
+			if strings.Contains(proxy, ":") {
+				proxy += "/128"
+			} else {
+				proxy += "/32"
+			}
+		}
+		_, ipNet, err := net.ParseCIDR(proxy)
+		if err != nil {
+			return err
+		}
+		e.trustedProxies = append(e.trustedProxies, ipNet)
+	}
+	return nil
+}
+
+// IsTrustedProxies 判断 IP 是否是可信代理。
+func (e *Engine) IsTrustedProxies(ip string) bool {
+	// 默认不信任任何代理
+	if len(e.trustedProxies) == 0 {
+		return false
+	}
+
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return false
+	}
+
+	for _, trustedProxy := range e.trustedProxies {
+		if trustedProxy.Contains(parsedIP) {
+			return true
+		}
+	}
+	return false
 }

@@ -29,7 +29,7 @@ func NewDriver(engine *Engine) *Driver {
 
 // Serve 初始化 GRPC server，并根据传入的 [net.Listener] 启动 GRPC 服务。
 func (d *Driver) Serve(ln net.Listener) error {
-	d.server = grpc.NewServer()
+	d.server = d.engine.Server()
 	return d.server.Serve(ln)
 }
 
@@ -40,8 +40,19 @@ func (d *Driver) Match() mux.Matcher {
 
 // Stop 实现 GRPC 服务的优雅停机，
 func (d *Driver) Stop(ctx context.Context) error {
-	d.server.GracefulStop()
-	return nil
+	ch := make(chan struct{})
+	go func() {
+		d.server.GracefulStop()
+		close(ch)
+	}()
+
+	select {
+	case <-ch:
+		return nil
+	case <-ctx.Done():
+		d.server.Stop()
+		return ctx.Err()
+	}
 }
 
 // Engine 暴露引擎，用于用户挂载路由。

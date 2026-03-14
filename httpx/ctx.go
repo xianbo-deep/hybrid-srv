@@ -350,7 +350,7 @@ func (c *Ctx) SetSSEHeader() {
 }
 
 func (c *Ctx) ClientIP() string {
-	// 获取底层TCP连接的IP
+	// 获取底层TCP连接的IP并进行分割
 	remoteIP, _, err := net.SplitHostPort(c.Request.RemoteAddr)
 	if err != nil {
 		remoteIP = c.Request.RemoteAddr
